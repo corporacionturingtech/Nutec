@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mapa de oportunidades · NUTEC</title>
+<!--
+  Herramienta de diagnóstico de Turingtech preparada para Grupo NUTEC (comercial/NUTEC/).
+  NUTEC dijo que está "evaluando soluciones de IA y automatización para identificar oportunidades de
+  innovación, con proyección 2026-2027", sin nombrar ningún proceso. Esta página convierte esa búsqueda
+  en un ejercicio: la persona marca qué procesos duelen y cuáles ya están resueltos, y sale una lista
+  priorizada, una matriz impacto-esfuerzo y un borrador de hoja de ruta por trimestres.
+  Los procesos de DATA son HIPÓTESIS armadas con lo que se ve en nutecamerica.com (equipos, servicios y el
+  ERP JD Edwards que declaran). El nivel de esfuerzo es una estimación referencial de Turingtech previa al
+  diagnóstico. No hay precios ni plazos comprometidos.
+  A diferencia de los otros dos prototipos de la carpeta, va en la marca de Turingtech: es una herramienta
+  nuestra, no la simulación de un sistema de NUTEC.
+  Archivo autocontenido: sin CDN ni fuentes externas; funciona sin internet. Nada sale del navegador.
+  El estado se guarda en localStorage de este navegador; "Reiniciar" lo borra.
+-->
+<style>
+  :root {
+    color-scheme: light;
+    --btn: #0F172A;
+    --btn-hover: #1E293B;
+    --head: #0F172A;
+    --ink: #0F172A;
+    --on-ink: #CBD5E1;
+    --on-ink-acc: #FDBA74;
+    --acc: #EA580C;
+    --acc-text: #C2410C;
+    --acc-tint: #FFF1E8;
+    --acc-ring: rgba(234, 88, 12, .30);
+    --bg: #F1F5F9;
+    --surface: #FFFFFF;
+    --text: #334155;
+    --muted: #64748B;
+    --border: #E2E8F0;
+    --warn: #96500A;
+    --warn-tint: #FEF3D6;
+    --warn-border: #F2D48A;
+    --ok: #15803D;
+    --ok-bright: #22A35D;
+    --ok-tint: #DCF5E6;
+    --bad: #B91C1C;
+    --bad-tint: #FBE4E2;
+    --info: #1F4E8C;
+    --info-tint: #E4EEFA;
+
+    --font: Arial, "Liberation Sans", "DejaVu Sans", sans-serif;
+    --font-head: "Segoe UI", "Noto Sans", "DejaVu Sans", sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 12px 32px rgba(15, 23, 42, .09);
+    --ease: cubic-bezier(.2, .8, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+  h1, h2, h3, p, ul, ol { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+  button, select, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 3px solid var(--acc); outline-offset: 2px; }
+  .ic { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .num { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--font-mono); }
+
+  /* ---------- Barra superior ---------- */
+  .top { z-index: 30; display: flex; align-items: center; gap: 10px; padding: 10px max(16px, calc((100vw - 1160px) / 2)); background: var(--surface); border-bottom: 1px solid var(--border); }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand img { height: 24px; width: auto; display: block; flex: 0 0 auto; }
+  .brand-t { min-width: 0; line-height: 1.2; padding-left: 12px; border-left: 1px solid var(--border); }
+  .brand-t b { display: block; font-size: 15px; font-weight: 800; color: var(--head); white-space: nowrap; }
+  .brand-t span { display: block; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .proto { margin-left: auto; padding: 4px 10px; border-radius: 999px; border: 1.5px solid var(--warn-border); background: var(--warn-tint); color: var(--warn); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; white-space: nowrap; }
+  .tbtn { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; font-weight: 700; color: var(--head); white-space: nowrap; }
+  .tbtn:hover { background: var(--bg); }
+  .tbtn .ic { width: 18px; height: 18px; }
+
+  /* ---------- Layout ---------- */
+  .wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 1160px; margin: 0 auto; padding-block: 16px 28px; padding-inline: 16px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+  .main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+  .side { min-width: 0; }
+  .card { min-width: 0; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); padding: 20px 18px; }
+  .stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .row.between { justify-content: space-between; }
+
+  .kicker { font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--acc-text); }
+  h1 { margin-top: 4px; font-size: 23px; line-height: 1.2; font-weight: 800; color: var(--head); text-wrap: balance; }
+  h2 { font-size: 17px; line-height: 1.25; font-weight: 800; color: var(--head); text-wrap: balance; }
+  .lead { margin-top: 6px; color: var(--muted); max-width: 64ch; }
+  .fine { font-size: 12px; color: var(--muted); }
+  .note { display: flex; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-size: 13px; line-height: 1.45; }
+  .note .ic { margin-top: 1px; color: var(--muted); }
+  .gain { display: flex; gap: 10px; padding: 14px 16px; border-radius: 12px; background: var(--ok-tint); font-size: 14px; line-height: 1.45; }
+  .gain .ic { margin-top: 1px; color: var(--ok); stroke-width: 3; }
+  .gain b { color: var(--ok); }
+
+  /* ---------- Pestañas ---------- */
+  .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); width: fit-content; max-width: 100%; }
+  .tab { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px; border-radius: 10px; border: 0; background: transparent; font-size: 14px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .tab:hover { color: var(--head); }
+  .tab.on { background: var(--ink); color: #fff; }
+  .tab .ic { width: 18px; height: 18px; }
+
+  /* ---------- Botones ---------- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: 12px; border: 0; background: var(--btn); color: #fff; font-size: 15px; font-weight: 800; text-align: center; transition: background .2s, transform .1s; }
+  .btn:hover { background: var(--btn-hover); }
+  .btn:active { transform: translateY(1px); }
+  .btn[disabled] { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .btn.ghost { background: transparent; color: var(--head); border: 1px solid var(--border); font-weight: 700; }
+  .btn.ghost:hover { background: var(--bg); }
+  .btn.sm { min-height: 44px; padding: 0 14px; font-size: 13.5px; }
+  .link { border: 0; background: none; padding: 10px 2px; font-size: 13px; font-weight: 700; color: var(--head); text-decoration: underline; text-underline-offset: 3px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800; white-space: nowrap; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.ok { background: var(--ok-tint); color: var(--ok); }
+  .pill.warn { background: var(--warn-tint); color: var(--warn); }
+  .pill.bad { background: var(--bad-tint); color: var(--bad); }
+  .pill.info { background: var(--info-tint); color: var(--info); }
+  .pill.mute { background: #ECEEF1; color: var(--muted); }
+
+  /* ---------- Indicadores ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .kpi { min-width: 0; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); text-align: left; }
+  .kpi b { display: block; font-size: 28px; line-height: 1.1; font-weight: 800; color: var(--head); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .kpi span { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+  .kpi.warn { background: var(--warn-tint); border-color: var(--warn-border); }
+  .kpi.warn b { color: var(--warn); }
+  .kpi.good b { color: var(--ok); }
+
+  /* ---------- Barra guía ---------- */
+  .coach { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 16px; border-radius: var(--radius); background: var(--ink); color: var(--on-ink); box-shadow: 0 10px 26px rgba(15, 17, 22, .30); }
+  body[data-mode="libre"] .coach { display: none; }
+  .coach-n { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto; border-radius: 50%; background: #fff; color: var(--ink); font-size: 18px; font-weight: 800; }
+  .coach-n .ic { stroke-width: 3; color: var(--ok); }
+  .coach-b { flex: 1 1 240px; min-width: 0; }
+  .coach-k { font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--on-ink-acc); }
+  .coach-x { margin-top: 2px; font-size: 16px; font-weight: 700; line-height: 1.35; color: #fff; text-wrap: pretty; }
+  .coach-a { display: flex; align-items: center; gap: 12px; }
+  .coach-link { border: 0; background: none; padding: 8px 2px; color: var(--on-ink); font-size: 12.5px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+  .coach-dots { display: flex; gap: 5px; }
+  .coach-dots i { width: 18px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .22); }
+  .coach-dots i.done { background: var(--on-ink-acc); }
+  .coach-dots i.cur { background: #fff; }
+  .anchor { scroll-margin-top: 130px; }
+  .coach-t { position: relative; z-index: 1; scroll-margin-top: 170px; scroll-margin-bottom: 24px; box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--acc) !important; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 3px var(--surface), 0 0 0 10px var(--acc-ring); } }
+
+  /* ---------- Panel oscuro lateral ---------- */
+  .ink-card { border-radius: var(--radius); background: var(--ink); color: var(--on-ink); padding: 20px; }
+  .ink-card .kicker { color: var(--on-ink-acc); }
+  .ink-card h3 { margin-top: 4px; font-size: 19px; font-weight: 800; color: #fff; }
+  .ink-card > p { margin-top: 6px; font-size: 13px; color: var(--on-ink); }
+  .tl { margin-top: 16px; display: grid; }
+  .tl li { position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; padding-bottom: 16px; }
+  .tl li::before { content: ""; position: absolute; left: 10px; top: 22px; bottom: 0; width: 2px; background: rgba(255, 255, 255, .18); }
+  .tl li:last-child { padding-bottom: 0; }
+  .tl li:last-child::before { display: none; }
+  .tl .dot { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .35); }
+  .tl .dot .ic { width: 12px; height: 12px; stroke-width: 3.5; opacity: 0; }
+  .tl b { display: block; font-size: 14px; color: rgba(255, 255, 255, .6); }
+  .tl span { display: block; font-size: 12.5px; color: rgba(255, 255, 255, .5); }
+  .tl li.on .dot { border-color: var(--ok-bright); background: var(--ok-bright); color: #fff; }
+  .tl li.on .dot .ic { opacity: 1; }
+  .tl li.on b { color: #fff; }
+  .tl li.on span { color: var(--on-ink); }
+  .kv { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .kv > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
+  .kv > div:last-child { border-bottom: 0; }
+  .kv span { color: var(--muted); }
+  .kv b { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .foot { max-width: 1160px; margin: 0 auto; padding: 0 16px 28px; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  .foot b { color: var(--head); letter-spacing: .06em; }
+
+  /* ---------- Modal ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; padding: 16px; background: rgba(15, 17, 22, .62); }
+  .overlay.on { display: grid; }
+  .modal { width: min(540px, 100%); max-height: calc(100% - 32px); overflow-y: auto; padding: 24px 22px 20px; border-radius: 18px; background: var(--surface); box-shadow: 0 30px 80px rgba(0, 0, 0, .35); border-top: 6px solid var(--acc); }
+  .modal h3 { font-size: 20px; font-weight: 800; color: var(--head); text-wrap: balance; }
+  .modal p { margin-top: 10px; font-size: 14.5px; }
+  .modal .row { margin-top: 18px; }
+  .modal ol { display: grid; gap: 8px; margin-top: 14px; counter-reset: s; }
+  .modal ol li { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; counter-increment: s; }
+  .modal ol li::before { content: counter(s); display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 auto; border-radius: 50%; background: var(--acc-tint); color: var(--acc-text); font-size: 13px; font-weight: 800; }
+
+  /* ---------- Tablas ---------- */
+  .tw { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .t th, .t td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .t th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+  .t th:first-child, .t td:first-child { text-align: left; }
+  .t tr:last-child td { border-bottom: 0; }
+  .t tfoot td { font-weight: 800; background: var(--bg); }
+  .t small { display: block; font-size: 11.5px; color: var(--muted); }
+
+  @media (min-width: 760px) {
+    .top { position: sticky; top: env(safe-area-inset-top, 0px); }
+    .coach { top: calc(env(safe-area-inset-top, 0px) + 70px); }
+    .coach-t { scroll-margin-top: 220px; }
+    .anchor { scroll-margin-top: 150px; }
+    .card { padding: 24px; }
+    h1 { font-size: 26px; }
+  }
+  @media (min-width: 1000px) {
+    .cols { grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
+    .side { position: sticky; top: 170px; }
+    body[data-mode="libre"] .side { top: 84px; }
+  }
+  @media (max-width: 759px) {
+    .proto .mid, .proto .long { display: none; }
+    .tbtn span { display: none; }
+    .tbtn { padding: 0 10px; }
+    .coach { padding: 10px 12px; }
+    .coach-n { width: 30px; height: 30px; font-size: 15px; }
+    .coach-x { font-size: 14.5px; }
+    .coach-dots { display: none; }
+    .tabs { width: 100%; }
+    .tab { flex: 1 1 0; padding: 0 8px; font-size: 13px; }
+  }
+  @media (max-width: 520px) {
+    /* La etiqueta de prototipo baja a su propia franja para no tapar el nombre. */
+    .top { flex-wrap: wrap; }
+    .brand { flex: 1 1 0; }
+    .brand { gap: 10px; }
+    .brand img { height: 18px; }
+    .brand-t { padding-left: 10px; }
+    .brand-t b { white-space: normal; font-size: 14px; line-height: 1.15; }
+    .brand-t span { display: none; }
+    .proto { order: 3; flex: 1 1 100%; margin: 0; border-radius: 8px; text-align: center; }
+    .proto .long { display: inline; }
+    .tab .ic { display: none; }
+    .kpi { padding: 12px 10px; }
+    .kpi b { font-size: 22px; }
+    .kpi span { font-size: 12px; line-height: 1.3; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  /* ---------- Propio de esta herramienta ---------- */
+  h1, h2, h3, .btn, .tab, .coach-x, .brand-t b { font-family: var(--font-head); }
+  .wm { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-head); font-size: 15px; font-weight: 900; letter-spacing: .1em; color: var(--head); white-space: nowrap; }
+  .wm i { width: 12px; height: 12px; border-radius: 3px; background: var(--acc); }
+  .coach-count { font-size: 12.5px; font-weight: 700; color: #fff; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  .team { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .team-h { display: flex; align-items: center; gap: 10px; }
+  .team-h .ti { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--ink); color: #fff; }
+  .team-h .ti .ic { width: 18px; height: 18px; }
+  .team-h h2 { font-size: 16px; }
+  .team-h span { font-size: 12.5px; color: var(--muted); }
+  .procs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .procx { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface); }
+  .procx.hot { border-color: var(--acc); background: var(--acc-tint); }
+  .procx.done { background: var(--bg); }
+  .procx-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .procx-h b { font-family: var(--font-head); font-size: 15.5px; color: var(--head); }
+  .procx-h .tag { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .procx p { font-size: 13.5px; color: var(--text); }
+  .procx .badge { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 11.5px; font-weight: 800; color: var(--acc-text); }
+  .procx .badge .ic { width: 14px; height: 14px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface); font-size: 13.5px; font-weight: 700; color: var(--text); }
+  .seg button:hover { border-color: var(--head); }
+  .seg button.on { border-color: var(--ink); background: var(--ink); color: #fff; }
+  .seg button.on.hot { border-color: var(--acc); background: var(--acc); }
+  .seg.sm { align-items: center; }
+  .seg.sm > span { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-right: 2px; }
+  .seg.sm button { min-height: 44px; padding: 0 12px; font-size: 13px; }
+  .add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .add input { min-height: 48px; min-width: 0; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface); font-size: 15px; }
+  .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--warn-border); background: var(--warn-tint); color: var(--warn); font-size: 13.5px; font-weight: 700; }
+  .banner .link { color: var(--warn); padding: 2px 0; }
+
+  .two { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+  .rank { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 12px; }
+  .rk { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+  .rk.first { border: 2px solid var(--acc); background: var(--acc-tint); }
+  .rk .n { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; font-family: var(--font-head); font-size: 15px; font-weight: 800; }
+  .rk.first .n { background: var(--acc); }
+  .rk b { font-family: var(--font-head); font-size: 15px; color: var(--head); }
+  .rk .who { font-size: 12px; color: var(--muted); }
+  .rk .meters { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  .rk .meters b { font-family: var(--font); font-size: 12.5px; color: var(--text); }
+  .meter { display: inline-flex; align-items: center; gap: 6px; }
+  .meter .pips { display: inline-flex; gap: 2px; }
+  .meter .pips i { width: 7px; height: 12px; border-radius: 2px; background: var(--border); }
+  .meter .pips i.on { background: var(--acc); }
+  .meter .pips.ef i.on { background: var(--ink); }
+  .rk .flag { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; margin-right: 10px; font-size: 11.5px; font-weight: 800; color: var(--acc-text); }
+  .rk .flag .ic { width: 14px; height: 14px; }
+
+  .matrix { width: 100%; height: auto; display: block; margin-top: 10px; font-family: var(--font); }
+  .matrix .zone { fill: var(--acc-tint); }
+  .matrix .grid { stroke: var(--border); stroke-width: 1; }
+  .matrix .axis { stroke: #94A3B8; stroke-width: 1.5; }
+  .matrix .lbl { font-size: 11px; fill: var(--muted); }
+  .matrix .zl { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; fill: #94A3B8; }
+  .matrix .zl.hot { fill: var(--acc-text); }
+  .matrix .dot { fill: var(--ink); stroke: #fff; stroke-width: 2; }
+  .matrix .dot.first { fill: var(--acc); }
+  .matrix .dn { font-family: var(--font-head); font-size: 12px; font-weight: 800; fill: #fff; text-anchor: middle; dominant-baseline: central; }
+
+  .gw { overflow-x: auto; margin-top: 12px; }
+  .gantt { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px 4px; min-width: 560px; }
+  .gantt .q { padding: 6px 4px; border-radius: 8px; background: var(--bg); font-family: var(--font-head); font-size: 12px; font-weight: 800; color: var(--head); text-align: center; }
+  .gantt .bar { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 10px; border-radius: 10px; background: var(--ink); color: #fff; font-size: 12.5px; font-weight: 700; line-height: 1.2; min-width: 0; }
+  .gantt .bar.first { background: var(--acc); }
+  .gantt .bar i { display: grid; place-items: center; width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; background: rgba(255, 255, 255, .22); font-style: normal; font-family: var(--font-head); font-size: 12px; }
+  .gantt .bar span { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .lists { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .lists h3 { font-size: 13.5px; color: var(--head); }
+  .lists ul { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .lists li { padding: 4px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); font-size: 12.5px; font-weight: 600; }
+  .lists li.ok { background: var(--ok-tint); border-color: transparent; color: var(--ok); }
+  pre.sumtxt { margin: 12px 0 0; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow-y: auto; }
+  .emptyx { display: grid; place-items: center; gap: 12px; min-height: 220px; padding: 24px; text-align: center; color: var(--muted); }
+
+  @media (min-width: 900px) {
+    .procs { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    .two { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+    .two > .stack { gap: 16px; }
+    .lists:not(.col) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 520px) {
+    .wm { font-size: 13px; }
+    .procx-h .tag { margin-left: 0; flex-basis: 100%; }
+    .seg button { padding: 0 12px; font-size: 13px; }
+    .coach-count { display: none; }
+    /* La matriz se achica con la pantalla: se agrandan sus textos y puntos para que sigan leyéndose. */
+    .matrix .dot { r: 19px; }
+    .matrix .dn { font-size: 19px; }
+    .matrix .lbl { font-size: 18px; }
+    .matrix .zl { font-size: 15px; letter-spacing: 0; }
+  }
+  @media print {
+    .top .tbtn, .coach, .tabs, .foot, .noprint { display: none !important; }
+    body { background: #fff; }
+    .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+    pre.sumtxt { max-height: none; }
+  }
+</style>
+</head>
+<body data-mode="guiado">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M4 20V5M4 20h16"/><circle cx="9" cy="14" r="1.8"/><circle cx="14" cy="8" r="1.8"/><circle cx="18" cy="13" r="1.8"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9.5L4 20V5Z"/><path d="M8 9.5h8M8 12.5h5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2.5 6h11v10h-11zM13.5 9.5h4l3 3.5V16h-7"/><circle cx="6.5" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 9.5 12 4l9 5.5M4.5 10v8M9.5 10v8M14.5 10v8M19.5 10v8M3 20h18"/></symbol>
+  <symbol id="i-cycle" viewBox="0 0 24 24"><path d="M7 7h9l-2.5-2.5M17 17H8l2.5 2.5M19 10v4a3 3 0 0 1-3 3M5 14v-4a3 3 0 0 1 3-3"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V5M4 20h16M8.5 16v-5M13 16V8M17.5 16v-7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3"/><path d="M7 14h10v7H7z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.8z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="brand">
+    <span class="wm"><i></i>TURINGTECH</span>
+    <div class="brand-t"><b>Mapa de oportunidades</b><span>Preparado para Grupo NUTEC</span></div>
+  </div>
+  <span class="proto">BORRADOR<span class="mid"> DE TRABAJO</span><span class="long"> · ESTIMACIONES REFERENCIALES</span></span>
+  <button class="tbtn" id="resetBtn" type="button" title="Empezar de nuevo"><svg class="ic"><use href="#i-reset"/></svg><span>Reiniciar</span></button>
+</header>
+
+<main class="wrap">
+  <div class="coach" id="coach" aria-live="polite"></div>
+  <nav class="tabs" id="tabs" aria-label="Secciones"></nav>
+  <div id="view"></div>
+</main>
+
+<footer class="foot">
+  Herramienta de diagnóstico de <b>TURINGTECH</b>, preparada para Grupo NUTEC. No es un sistema de NUTEC ni una propuesta comercial.
+  Los procesos son hipótesis armadas con información pública de nutecamerica.com. El nivel de esfuerzo es una estimación referencial previa al diagnóstico,
+  y la hoja de ruta es un borrador para conversar, no un compromiso de plazos. Lo que marque se queda en este navegador.
+</footer>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+
+<script>
+/* =====================================================================
+   PROCESOS CANDIDATOS. Son hipótesis; se editan solo aquí.
+   esf = esfuerzo referencial de Turingtech: 1 bajo · 2 medio · 3 alto
+   c = nombre corto para la hoja de ruta · proto = prototipo de esta carpeta que ya lo muestra
+   ===================================================================== */
+const DATA = {
+  cliente: 'Grupo NUTEC',
+  trimestres: ['Q4 2026', 'Q1 2027', 'Q2 2027', 'Q3 2027', 'Q4 2027'],
+  carriles: 2,                       // iniciativas que se trabajan en paralelo en el borrador de hoja de ruta
+  equipos: [
+    { id: 'com', n: 'Comercial', d: 'Atención de pedidos y cotizaciones', ic: 'i-chat' },
+    { id: 'ind', n: 'Indent', d: 'Gestión internacional e importaciones', ic: 'i-globe' },
+    { id: 'log', n: 'Logística', d: 'Bodegas y entregas en todo el país', ic: 'i-truck' },
+    { id: 'fin', n: 'Finanzas', d: 'Tesorería, crédito y cobranza', ic: 'i-bank' },
+    { id: 'rec', n: 'Recycle', d: 'Planta de reciclaje', ic: 'i-cycle' },
+    { id: 'ger', n: 'Gerencia y TIC', d: 'Información para decidir', ic: 'i-chart' }
+  ],
+  procesos: [
+    { id: 'ped', c: 'Pedidos', e: 'com', esf: 2, n: 'Pedidos por correo y WhatsApp', d: 'La IA lee el pedido como lo escribió el cliente y lo deja listo en JD Edwards.', proto: 'Pedidos con IA' },
+    { id: 'cot', c: 'Cotizaciones', e: 'com', esf: 2, n: 'Cotizaciones', d: 'Respuesta a solicitudes de precio con la lista vigente, el stock y la fecha de entrega.' },
+    { id: 'imp', c: 'Documentos de importación', e: 'ind', esf: 3, n: 'Documentos de importación', d: 'Factura comercial, conocimiento de embarque y lista de empaque leídos con IA para el costeo.' },
+    { id: 'emb', c: 'Embarques', e: 'ind', esf: 2, n: 'Seguimiento de embarques', d: 'Fechas de llegada y avisos automáticos a Comercial y a los clientes.' },
+    { id: 'est', c: 'Estado del pedido', e: 'log', esf: 1, n: 'Estado del pedido para el cliente', d: 'El cliente consulta, o recibe por WhatsApp, en qué va su despacho.' },
+    { id: 'des', c: 'Despachos', e: 'log', esf: 3, n: 'Programación de despachos', d: 'Rutas, guías y turnos de bodega armados desde los pedidos del día.' },
+    { id: 'con', c: 'Conciliación y cobros', e: 'fin', esf: 2, n: 'Conciliación bancaria y cobros', d: 'Los pagos del banco se aplican solos a las facturas; se revisan solo las diferencias.', proto: 'Conciliación y cartera' },
+    { id: 'cob', c: 'Cobranza y cupos', e: 'fin', esf: 1, n: 'Cobranza y cupos de crédito', d: 'Recordatorios por tramo de vencimiento y cupos al día con cada pago.' },
+    { id: 'lot', c: 'Lotes reciclados', e: 'rec', esf: 3, n: 'Trazabilidad de lotes reciclados', d: 'Del material recuperado al pellet, con su certificado de calidad por lote.' },
+    { id: 'tab', c: 'Tableros', e: 'ger', esf: 2, n: 'Tableros de gerencia', d: 'Ventas, margen, inventario y cartera en una sola vista, desde JD Edwards.' },
+    { id: 'asi', c: 'Asistente con IA', e: 'ger', esf: 1, n: 'Asistente interno con IA', d: 'Responde consultas sobre fichas técnicas, procedimientos ISO y políticas internas.' }
+  ],
+  dolor: { mucho: ['Duele mucho', 3], duele: ['Duele', 2], ok: ['Ya está resuelto', 0], na: ['No aplica', 0] },
+  frec: { dia: ['A diario', 3], sem: ['Cada semana', 2], mes: ['Cada mes', 1] },
+  esfuerzo: { 1: 'Bajo', 2: 'Medio', 3: 'Alto' },
+  // Respuestas de muestra para quien explora la herramienta sin llenarla. No son respuestas de NUTEC.
+  ejemplo: { ped: ['mucho', 'dia'], cot: ['duele', 'dia'], imp: ['mucho', 'sem'], emb: ['duele', 'sem'], est: ['duele', 'sem'], des: ['na'], con: ['duele', 'dia'], cob: ['ok'], lot: ['duele', 'mes'], tab: ['ok'], asi: ['duele', 'sem'] }
+};
+/* ===================================================================== */
+
+const KEY = 'nutec-mapa-oportunidades-v1';
+const MIN = 3;        // procesos que duelen necesarios para priorizar
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const icon = (id) => '<svg class="ic" aria-hidden="true"><use href="#' + id + '"/></svg>';
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SOLO = (function () { try { return window.self === window.top; } catch (e) { return false; } })();
+
+/* ---------- Estado ---------- */
+function initState() { return { view: 'lista', marks: {}, extra: [], sample: false, copied: false, seenIntro: false }; }
+let S = initState();
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) S = Object.assign(initState(), JSON.parse(raw));
+  } catch (e) {}
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* ---------- Cálculos ---------- */
+const procesos = () => DATA.procesos.concat(S.extra);
+const equipo = (id) => DATA.equipos.find((e) => e.id === id);
+const duele = (m) => m && (m.d === 'mucho' || m.d === 'duele');
+// Impacto = cuánto duele (2 o 3) por cada cuánto ocurre (1 a 3): va de 2 a 9.
+const impacto = (m) => DATA.dolor[m.d][1] * DATA.frec[m.f || 'sem'][1];
+// Orden: más impacto por unidad de esfuerzo primero; si empatan, el de menor esfuerzo.
+function ranking() {
+  return procesos().filter((p) => duele(S.marks[p.id])).map((p) => {
+    const imp = impacto(S.marks[p.id]), esf = p.esf || 2;
+    return Object.assign({}, p, { imp, esfN: esf, pri: imp / esf });
+  }).sort((a, b) => b.pri - a.pri || a.esfN - b.esfN || b.imp - a.imp).map((p, i) => Object.assign(p, { rank: i + 1 }));
+}
+// Borrador de hoja de ruta: cada iniciativa entra en el carril que se libera antes; esfuerzo alto ocupa dos trimestres.
+function ruta(rk) {
+  const libre = Array.from({ length: DATA.carriles }, () => 0), dentro = [], fuera = [];
+  rk.forEach((p) => {
+    const c = libre.indexOf(Math.min.apply(null, libre)), ini = libre[c], dur = p.esfN === 3 ? 2 : 1;
+    if (ini >= DATA.trimestres.length) { fuera.push(p); return; }
+    libre[c] = ini + dur;
+    dentro.push(Object.assign({}, p, { ini, dur: Math.min(dur, DATA.trimestres.length - ini) }));
+  });
+  return { dentro, fuera };
+}
+const cuenta = () => { const ps = procesos(); return { total: ps.length, marcados: ps.filter((p) => S.marks[p.id]).length, duelen: ps.filter((p) => duele(S.marks[p.id])).length }; };
+function resumenTxt() {
+  const rk = ranking(), r = ruta(rk), ps = procesos();
+  const ok = ps.filter((p) => (S.marks[p.id] || {}).d === 'ok'), sin = ps.filter((p) => !S.marks[p.id]);
+  let t = 'Mapa de oportunidades de IA y automatización · ' + DATA.cliente + ' (borrador)\n\nPRIORIDADES\n';
+  t += rk.map((p) => p.rank + '. ' + p.n + ' (' + (equipo(p.e) || { n: 'Propio' }).n + '): impacto ' + p.imp + ' de 9, esfuerzo ' + (p.esf ? DATA.esfuerzo[p.esf].toLowerCase() : 'por estimar')).join('\n');
+  t += '\n\nHOJA DE RUTA TENTATIVA\n' + DATA.trimestres.map((q, i) => { const xs = r.dentro.filter((p) => p.ini === i); return xs.length ? q + ': ' + xs.map((p) => p.n + (p.dur > 1 ? ' (dos trimestres)' : '')).join('; ') : null; }).filter(Boolean).join('\n');
+  if (r.fuera.length) t += '\nDespués de 2027: ' + r.fuera.map((p) => p.n).join('; ');
+  if (ok.length) t += '\n\nYA RESUELTO (no se propone)\n' + ok.map((p) => '- ' + p.n).join('\n');
+  if (sin.length) t += '\n\nSIN MARCAR\n' + sin.map((p) => '- ' + p.n).join('\n');
+  t += '\n\nSiguiente paso: diagnóstico técnico gratuito del proceso 1 con Turingtech.\nEl esfuerzo es una estimación referencial y la hoja de ruta, un borrador para conversar.';
+  return t;
+}
+
+/* ---------- Guía ---------- */
+const VISTAS = [['lista', 'Procesos', 'i-list'], ['mapa', 'Mapa y hoja de ruta', 'i-map']];
+function coachStep() {
+  const c = cuenta();
+  if (S.view === 'lista') {
+    if (c.duelen >= MIN) return { n: 2, sel: '[data-view="mapa"]', x: 'Ya hay con qué priorizar. Abra «Mapa y hoja de ruta»; puede volver a marcar cuando quiera.', count: c };
+    return { n: 1, x: 'Marque cada proceso: ¿duele, ya está resuelto o no aplica? Con ' + MIN + ' que duelan ya se puede priorizar.', count: c, ej: !c.marcados };
+  }
+  if (c.duelen < 1) return { n: 1, sel: '[data-view="lista"]', x: 'Todavía no hay procesos que duelan. Vuelva a «Procesos» y marque al menos uno.' };
+  if (!S.copied) return { n: 3, sel: '#btnCopiar', x: 'Este es el borrador de su hoja de ruta. Copie el resumen para compartirlo con su equipo.' };
+  return { done: true };
+}
+function paintCoach(noScroll) {
+  document.querySelectorAll('.coach-t').forEach((el) => el.classList.remove('coach-t'));
+  const c = coachStep();
+  $('#coach').innerHTML = c.done
+    ? '<div class="coach-n">' + icon('i-check') + '</div><div class="coach-b"><div class="coach-k">Borrador listo</div><div class="coach-x">El número 1 de la lista es el candidato para el diagnóstico técnico gratuito.</div></div>'
+    : '<div class="coach-n">' + c.n + '</div><div class="coach-b"><div class="coach-k">Paso ' + c.n + ' de 3</div><div class="coach-x">' + esc(c.x) + '</div></div>'
+      + '<div class="coach-a">' + (c.count ? '<span class="coach-count">' + c.count.marcados + ' de ' + c.count.total + ' marcados</span>' : '') + (c.ej ? '<button class="coach-link" data-act="ejemplo" type="button">Usar un ejemplo</button>' : '') + '</div>';
+  if (c.done || !c.sel) return;
+  const t = document.querySelector(c.sel);
+  if (!t) return;
+  t.classList.add('coach-t');
+  if (noScroll) return;
+  const r = t.getBoundingClientRect();
+  if (r.top < 150 || r.bottom > innerHeight - 20) t.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+}
+
+/* ---------- Procesos ---------- */
+function procHTML(p) {
+  const m = S.marks[p.id], hot = duele(m);
+  const seg = Object.keys(DATA.dolor).map((k) => '<button type="button" class="' + (m && m.d === k ? 'on' + (hot ? ' hot' : '') : '') + '" data-act="marca" data-v="' + p.id + '" data-d="' + k + '" aria-pressed="' + !!(m && m.d === k) + '">' + DATA.dolor[k][0] + '</button>').join('');
+  const fr = hot ? '<div class="seg sm"><span>¿Cada cuánto?</span>' + Object.keys(DATA.frec).map((k) => '<button type="button" class="' + ((m.f || 'sem') === k ? 'on' : '') + '" data-act="frec" data-v="' + p.id + '" data-f="' + k + '" aria-pressed="' + ((m.f || 'sem') === k) + '">' + DATA.frec[k][0] + '</button>').join('') + '</div>' : '';
+  return '<div class="procx' + (hot ? ' hot' : m ? ' done' : '') + '" id="p-' + p.id + '"><div><div class="procx-h"><b>' + esc(p.n) + '</b><span class="tag">Esfuerzo ' + (p.esf ? DATA.esfuerzo[p.esf].toLowerCase() : 'por estimar') + '</span></div>'
+    + (p.d ? '<p>' + esc(p.d) + '</p>' : '')
+    + (p.proto ? '<span class="badge">' + icon('i-play') + 'Prototipo disponible: ' + esc(p.proto) + '</span>' : '')
+    + (p.propio ? '<button class="link" type="button" data-act="quitar" data-v="' + p.id + '" style="padding:2px 0">Quitar</button>' : '') + '</div>'
+    + '<div class="seg" role="group" aria-label="' + esc(p.n) + '">' + seg + '</div>' + fr + '</div>';
+}
+function vLista() {
+  let h = '<section class="card stack"><div><div class="kicker">' + DATA.cliente + ' · horizonte 2026-2027</div><h1>¿Dónde conviene empezar con IA y automatización?</h1>'
+    + '<p class="lead">' + DATA.procesos.length + ' procesos candidatos, agrupados por sus equipos. Marque cuáles duelen hoy y cuáles ya tienen resueltos: el mapa se arma con sus respuestas.</p></div>'
+    + '<div class="note">' + icon('i-info') + '<span>La lista parte de lo que se ve en nutecamerica.com. Son hipótesis: usted las confirma, las descarta o agrega las suyas al final.</span></div>'
+    + (S.sample ? '<div class="banner">Ejemplo cargado: estas marcas son ilustrativas, no son respuestas de NUTEC.<button class="link" type="button" data-act="limpiar">Borrar y empezar en blanco</button></div>' : '')
+    + '</section>';
+  DATA.equipos.forEach((e) => {
+    const ps = DATA.procesos.filter((p) => p.e === e.id);
+    h += '<section class="card team"><div class="team-h"><span class="ti">' + icon(e.ic) + '</span><div><h2>' + esc(e.n) + '</h2><span>' + esc(e.d) + '</span></div></div><div class="procs">' + ps.map(procHTML).join('') + '</div></section>';
+  });
+  h += '<section class="card team"><div class="team-h"><span class="ti">' + icon('i-plus') + '</span><div><h2>¿Falta alguno?</h2><span>Agregue un proceso que hoy consuma tiempo de su equipo</span></div></div>'
+    + (S.extra.length ? '<div class="procs">' + S.extra.map(procHTML).join('') + '</div>' : '')
+    + '<form class="add" id="addForm"><input id="addInput" type="text" maxlength="60" placeholder="Por ejemplo: liquidación de comisiones" aria-label="Nombre del proceso" autocomplete="off"><button class="btn sm" type="submit">Agregar</button></form></section>';
+  const c = cuenta();
+  h += '<div class="row"><button class="btn' + (c.duelen ? '' : ' ghost') + '" type="button" data-act="view" data-v="mapa">Ver el mapa y la hoja de ruta' + icon('i-arrow') + '</button><span class="fine">' + c.duelen + (c.duelen === 1 ? ' proceso que duele' : ' procesos que duelen') + ' · ' + c.marcados + ' de ' + c.total + ' marcados</span></div>';
+  return '<div class="main">' + h + '</div>';
+}
+
+/* ---------- Mapa ---------- */
+function pips(n, max, cls) { return '<span class="pips ' + cls + '">' + Array.from({ length: max }, (_, i) => '<i class="' + (i < n ? 'on' : '') + '"></i>').join('') + '</span>'; }
+function matrizSVG(rk) {
+  const X0 = 46, X1 = 510, Y0 = 16, Y1 = 276, cw = (X1 - X0) / 3;
+  const y = (imp) => Y1 - (imp - 1) / 9 * (Y1 - Y0), corte = y(5.5), xDiv = X0 + cw * 2;
+  // Los que caen en la misma celda se reparten a lo ancho para que no se tapen.
+  const celdas = {};
+  rk.forEach((p) => { const k = p.esfN + '-' + p.imp; (celdas[k] = celdas[k] || []).push(p); });
+  let dots = '';
+  Object.keys(celdas).forEach((k) => {
+    const g = celdas[k];
+    g.forEach((p, i) => {
+      const cx = X0 + cw * (p.esfN - .5) + (i - (g.length - 1) / 2) * 40, cy = y(p.imp);
+      dots += '<circle class="dot' + (p.rank === 1 ? ' first' : '') + '" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="13"><title>' + esc(p.n) + '</title></circle><text class="dn" x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '">' + p.rank + '</text>';
+    });
+  });
+  return '<svg class="matrix" viewBox="0 0 520 320" role="img" aria-label="Matriz de impacto y esfuerzo con ' + rk.length + ' procesos">'
+    + '<rect class="zone" x="' + X0 + '" y="' + Y0 + '" width="' + (xDiv - X0) + '" height="' + (corte - Y0) + '" rx="6"/>'
+    + '<line class="grid" x1="' + X0 + '" y1="' + corte + '" x2="' + X1 + '" y2="' + corte + '" stroke-dasharray="4 4"/><line class="grid" x1="' + xDiv + '" y1="' + Y0 + '" x2="' + xDiv + '" y2="' + Y1 + '" stroke-dasharray="4 4"/>'
+    + '<line class="axis" x1="' + X0 + '" y1="' + Y0 + '" x2="' + X0 + '" y2="' + Y1 + '"/><line class="axis" x1="' + X0 + '" y1="' + Y1 + '" x2="' + X1 + '" y2="' + Y1 + '"/>'
+    + '<text class="zl hot" x="' + (X0 + 10) + '" y="' + (Y0 + 18) + '">Empezar aquí</text><text class="zl" x="' + (X1 - 8) + '" y="' + (Y0 + 18) + '" text-anchor="end">Proyecto mayor</text>'
+    + '<text class="zl" x="' + (X0 + 10) + '" y="' + (corte + 18) + '">Mejora rápida</text><text class="zl" x="' + (X1 - 8) + '" y="' + (corte + 18) + '" text-anchor="end">Más adelante</text>'
+    + [1, 2, 3].map((e) => '<text class="lbl" x="' + (X0 + cw * (e - .5)) + '" y="' + (Y1 + 18) + '" text-anchor="middle">' + DATA.esfuerzo[e] + '</text>').join('')
+    + '<text class="lbl" x="' + ((X0 + X1) / 2) + '" y="' + (Y1 + 38) + '" text-anchor="middle" font-weight="700">Esfuerzo referencial</text>'
+    + '<text class="lbl" x="14" y="' + ((Y0 + Y1) / 2) + '" text-anchor="middle" font-weight="700" transform="rotate(-90 14 ' + ((Y0 + Y1) / 2) + ')">Impacto</text>'
+    + '<text class="lbl" x="' + (X0 - 8) + '" y="' + (y(9) + 4) + '" text-anchor="end">9</text><text class="lbl" x="' + (X0 - 8) + '" y="' + (y(2) + 4) + '" text-anchor="end">2</text>'
+    + dots + '</svg>';
+}
+function vMapa() {
+  const rk = ranking(), ps = procesos();
+  if (!rk.length) {
+    return '<section class="card emptyx"><h2>Aún no hay nada que priorizar</h2><p>Marque al menos un proceso que duela y aquí aparecerán la lista priorizada, la matriz y la hoja de ruta.</p><div class="row"><button class="btn" type="button" data-act="view" data-v="lista">Ir a los procesos' + icon('i-arrow') + '</button><button class="btn ghost" type="button" data-act="ejemplo">Usar un ejemplo</button></div></section>';
+  }
+  const r = ruta(rk), eq = (p) => (equipo(p.e) || { n: 'Propio' }).n;
+  let h = (S.sample ? '<div class="banner">Ejemplo cargado: estas marcas son ilustrativas, no son respuestas de NUTEC.<button class="link" type="button" data-act="limpiar">Borrar y empezar en blanco</button></div>' : '')
+    + (rk.length < MIN ? '<div class="note">' + icon('i-info') + '<span>Con ' + rk.length + (rk.length === 1 ? ' proceso marcado' : ' procesos marcados') + ' el mapa todavía dice poco. Marque al menos ' + MIN + ' que duelan para comparar.</span></div>' : '');
+  h += '<div class="two"><section class="card"><div class="kicker">Prioridades</div><h2>Por dónde empezar</h2><p class="fine">Primero lo que más duele por unidad de esfuerzo.</p><div class="rank">'
+    + rk.map((p) => '<div class="rk' + (p.rank === 1 ? ' first' : '') + '"><span class="n">' + p.rank + '</span><div><b>' + esc(p.n) + '</b><div class="who">' + esc(eq(p)) + '</div>'
+      + '<div class="meters"><span class="meter">Impacto ' + pips(p.imp, 9, '') + '<b>' + p.imp + ' de 9</b></span><span class="meter">Esfuerzo ' + pips(p.esfN, 3, 'ef') + '<b>' + (p.esf ? DATA.esfuerzo[p.esf] : 'Por estimar') + '</b></span></div>'
+      + (p.rank === 1 ? '<span class="flag">' + icon('i-star') + 'Candidato al diagnóstico gratuito</span>' : '') + (p.proto ? '<span class="flag">' + icon('i-play') + 'Prototipo: ' + esc(p.proto) + '</span>' : '') + '</div></div>').join('')
+    + '</div></section>';
+  h += '<div class="stack"><section class="card"><div class="kicker">Matriz</div><h2>Impacto frente a esfuerzo</h2><p class="fine">Cada número es un proceso de la lista. El impacto sale de sus respuestas; el esfuerzo es una estimación de Turingtech.</p>' + matrizSVG(rk) + '</section>';
+
+  const ok = ps.filter((p) => (S.marks[p.id] || {}).d === 'ok'), na = ps.filter((p) => (S.marks[p.id] || {}).d === 'na'), sin = ps.filter((p) => !S.marks[p.id]);
+  const lst = (t, xs, cls) => '<div><h3>' + t + '</h3>' + (xs.length ? '<ul>' + xs.map((p) => '<li class="' + cls + '">' + esc(p.n) + '</li>').join('') + '</ul>' : '<p class="fine">Ninguno</p>') + '</div>';
+  h += '<section class="card"><div class="lists col">' + lst('Ya está resuelto: no se propone', ok, 'ok') + lst('No aplica', na, '') + lst('Sin marcar', sin, '') + '</div></section></div></div>';
+
+  h += '<section class="card"><div class="kicker">Hoja de ruta tentativa</div><h2>Cómo podría repartirse entre 2026 y 2027</h2><p class="fine">' + DATA.carriles + ' iniciativas en paralelo; las de esfuerzo alto ocupan dos trimestres. Es un borrador para conversar.</p>'
+    + '<div class="gw"><div class="gantt">' + DATA.trimestres.map((q) => '<div class="q">' + q + '</div>').join('')
+    + r.dentro.map((p) => '<div class="bar' + (p.rank === 1 ? ' first' : '') + '" style="grid-column:' + (p.ini + 1) + ' / span ' + p.dur + '" title="' + esc(p.n) + '"><i>' + p.rank + '</i><span>' + esc(p.rank === 1 ? 'Diagnóstico y ' + (p.c || p.n).toLowerCase() : p.c || p.n) + '</span></div>').join('')
+    + '</div></div>' + (r.fuera.length ? '<p class="fine" style="margin-top:10px">Después de 2027: ' + r.fuera.map((p) => esc(p.n)).join('; ') + '.</p>' : '') + '</section>';
+
+  h += '<section class="card"><div class="kicker">Para compartir</div><h2>Resumen en texto</h2><pre class="sumtxt" id="sumTxt">' + esc(resumenTxt()) + '</pre>'
+    + '<div class="row noprint" style="margin-top:14px"><button class="btn" id="btnCopiar" type="button" data-act="copiar">' + icon(S.copied ? 'i-check' : 'i-copy') + (S.copied ? 'Copiado' : 'Copiar el resumen') + '</button>'
+    + (SOLO ? '<button class="btn ghost" type="button" data-act="imprimir">' + icon('i-print') + 'Imprimir o guardar PDF</button>' : '')
+    + '<button class="btn ghost" type="button" data-act="view" data-v="lista">Volver a los procesos</button></div></section>';
+  return '<div class="main">' + h + '</div>';
+}
+
+/* ---------- Render ---------- */
+function render(scrollTop, keep) {
+  $('#tabs').innerHTML = VISTAS.map((v) => '<button class="tab' + (S.view === v[0] ? ' on' : '') + '" type="button" data-act="view" data-v="' + v[0] + '" data-view="' + v[0] + '">' + icon(v[2]) + v[1] + '</button>').join('');
+  $('#view').innerHTML = S.view === 'lista' ? vLista() : vMapa();
+  if (scrollTop) scrollTo(0, 0);
+  paintCoach(!!keep);
+  save();
+}
+
+/* ---------- Modal ---------- */
+function openModal(html) { $('#modal').innerHTML = html; $('#overlay').classList.add('on'); const b = $('#modal button'); if (b) b.focus(); }
+function closeModal() { $('#overlay').classList.remove('on'); }
+function showIntro() {
+  openModal('<h3>Un mapa para decidir por dónde empezar</h3>'
+    + '<p>Usted busca oportunidades de IA y automatización para 2026-2027. En cinco minutos esta herramienta las ordena con sus propias respuestas:</p>'
+    + '<ol><li>Marca qué procesos duelen y cuáles ya están resueltos</li><li>Ve cuáles rinden más con menos esfuerzo</li><li>Se lleva un borrador de hoja de ruta para su equipo</li></ol>'
+    + '<p class="fine">Lo que marque se queda en este navegador. No hay precios ni compromisos: es un borrador de trabajo.</p>'
+    + '<div class="row"><button class="btn" type="button" data-act="cerrar">Empezar' + icon('i-arrow') + '</button><button class="btn ghost" type="button" data-act="ejemplo">Ver un ejemplo lleno</button></div>');
+}
+
+/* ---------- Acciones ---------- */
+const ACT = {
+  view(v) { S.view = v; render(true); },
+  marca(v, d) {
+    const m = S.marks[v];
+    if (m && m.d === d.d) delete S.marks[v];
+    else S.marks[v] = { d: d.d, f: (m && m.f) || 'sem' };
+    S.sample = false; S.copied = false; render(false, true);
+  },
+  frec(v, d) { if (S.marks[v]) { S.marks[v].f = d.f; S.sample = false; S.copied = false; render(false, true); } },
+  quitar(v) { S.extra = S.extra.filter((p) => p.id !== v); delete S.marks[v]; S.copied = false; render(false, true); },
+  ejemplo() {
+    S.marks = {};
+    Object.keys(DATA.ejemplo).forEach((k) => { const e = DATA.ejemplo[k]; S.marks[k] = { d: e[0], f: e[1] || 'sem' }; });
+    S.sample = true; S.copied = false; S.seenIntro = true; closeModal(); render(false, true);
+  },
+  limpiar() { S.marks = {}; S.extra = []; S.sample = false; S.copied = false; S.view = 'lista'; render(true); },
+  copiar() {
+    const txt = resumenTxt(), listo = () => { S.copied = true; render(false, true); };
+    const manual = () => {
+      // Sin acceso al portapapeles: se selecciona el texto para copiarlo a mano.
+      try { const r = document.createRange(); r.selectNodeContents($('#sumTxt')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); } catch (e) {}
+      listo();
+    };
+    try { navigator.clipboard.writeText(txt).then(listo, manual); } catch (e) { manual(); }
+  },
+  imprimir() { try { window.print(); } catch (e) {} },
+  cerrar() { closeModal(); if (!S.seenIntro) { S.seenIntro = true; save(); } },
+  reiniciar() { try { localStorage.removeItem(KEY); } catch (e) {} S = initState(); S.seenIntro = true; closeModal(); render(true); }
+};
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-act]');
+  if (b && !b.disabled) { ACT[b.dataset.act](b.dataset.v, b.dataset); return; }
+  if (ev.target === $('#overlay')) ACT.cerrar();
+});
+document.addEventListener('submit', (ev) => {
+  if (ev.target.id !== 'addForm') return;
+  ev.preventDefault();
+  const n = $('#addInput').value.trim();
+  if (!n) { $('#addInput').focus(); return; }
+  const id = 'x' + Date.now().toString(36);
+  S.extra.push({ id, e: 'own', n, propio: true });
+  S.marks[id] = { d: 'duele', f: 'sem' };
+  S.sample = false; S.copied = false;
+  render(false, true);
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && $('#overlay').classList.contains('on')) ACT.cerrar(); });
+$('#resetBtn').addEventListener('click', () => {
+  openModal('<h3>¿Empezar de nuevo?</h3><p>Se borran las marcas y los procesos que agregó.</p><div class="row"><button class="btn" type="button" data-act="reiniciar">Sí, reiniciar</button><button class="btn ghost" type="button" data-act="cerrar">Seguir aquí</button></div>');
+});
+
+load();
+render();
+if (!S.seenIntro) showIntro();
+</script>
+</body>
+</html>
