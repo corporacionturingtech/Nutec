@@ -3,18 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Conciliación y cartera · NUTEC</title>
+<title>Pedidos con IA · NUTEC</title>
 <!--
   Prototipo interactivo para Grupo NUTEC (comercial/NUTEC/).
   Muestra una oportunidad que es una HIPÓTESIS para validar con NUTEC, no un dolor que ellos hayan declarado:
-  conciliación bancaria con aplicación automática de cobros, y cartera y cupos de crédito al día.
-  Es un MOCKUP: no hay backend. La carga de extractos, el cruce, el registro en JD Edwards y la liberación
-  del pedido están simulados. No acepta archivos reales.
-  Clientes genéricos ("Cliente A"), bancos genéricos ("Banco A"), sin cuentas ni nombres reales.
-  Ninguna cifra se escribe a mano: facturas y movimientos salen de DATA (los que coinciden se generan con
-  una semilla), y todos los totales se calculan de ahí, en centavos, para que el día cuadre a diferencia cero.
-  Continúa la historia de mockup_nutec_pedidos_ia.html: el pedido SO 2600412 de Cliente A quedó retenido
-  por cupo. El cupo, el saldo de Cliente A y el total del pedido deben ser los mismos en los dos archivos.
+  que los pedidos que llegan por correo, WhatsApp o Excel se conviertan en pedidos de JD Edwards sin digitarlos.
+  Es un MOCKUP: no hay backend ni IA real. La lectura del documento, la validación contra JD Edwards,
+  la creación del pedido y la respuesta al cliente están simuladas. No acepta archivos reales.
+  Clientes genéricos ("Cliente A"), códigos, precios, stock y cupos ilustrativos.
+  Ninguna cifra se escribe a mano: importes, IVA, totales, stock y cupo salen de DATA (montos en centavos).
+  El pedido retenido por cupo (SO 2600412, Cliente A) continúa en mockup_nutec_conciliacion_cartera.html:
+  si se cambian el cupo, el saldo o las líneas del pedido p1, hay que cambiarlos también allí.
   Archivo autocontenido: sin CDN ni fuentes externas; funciona sin internet.
   Paleta: rojo #BF0411 del logo de NUTEC y gris carbón.
   Abre en "recorrido guiado": la barra guía (coachStep) da una sola instrucción y resalta un único objetivo.
@@ -247,118 +246,107 @@
   }
 
   /* ---------- Propio de este prototipo ---------- */
-  .files { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .file { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1.5px dashed var(--border); background: var(--bg); }
-  .file.on { border-style: solid; border-color: var(--ok-bright); background: var(--ok-tint); }
-  .file .fi { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--surface); color: var(--head); }
-  .file.on .fi { color: var(--ok); }
-  .file b { display: block; font-size: 14.5px; }
-  .file span.d { display: block; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .steps { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); width: fit-content; max-width: 100%; }
+  .step { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 14px 0 8px; border-radius: 10px; border: 0; background: transparent; font-size: 13.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .step i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #ECEEF1; font-style: normal; font-size: 12.5px; font-weight: 800; }
+  .step i .ic { width: 13px; height: 13px; stroke-width: 3.5; }
+  .step.done { color: var(--text); }
+  .step.done i { background: var(--ok-tint); color: var(--ok); }
+  .step.cur { background: var(--ink); color: #fff; }
+  .step.cur i { background: #fff; color: var(--ink); }
+  .step[disabled] { cursor: default; opacity: .55; }
 
-  .split { display: flex; height: 22px; border-radius: 11px; overflow: hidden; background: var(--border); }
-  .split i { display: block; height: 100%; transform-origin: left; }
-  .split.anim i { animation: grow .9s var(--ease) both; }
-  @keyframes grow { from { transform: scaleX(0); } }
-  .c-ok { background: var(--ok-bright); }
-  .c-sug { background: #E0A62B; }
-  .c-fav { background: #5B8DEF; }
-  .c-rev { background: #B9BDC6; }
-  .trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-  .trio div { min-width: 0; padding: 12px; border-radius: 12px; background: var(--bg); }
-  .trio b { display: block; font-size: 26px; line-height: 1.1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--head); }
-  .trio span { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
-  .trio small { display: block; font-size: 12px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-  .trio i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; }
+  .inbox { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .msg { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); }
+  .msg .ch { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--bg); color: var(--head); }
+  .msg .ch.wa { background: #DCF8C6; color: #1B6E3C; }
+  .msg .ch.xl { background: #DDF3E6; color: #177A45; }
+  .msg .ch.em { background: var(--info-tint); color: var(--info); }
+  .msg-h { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .msg-h b { font-size: 15px; color: var(--head); }
+  .msg-h em { font-style: normal; font-size: 12px; color: var(--muted); }
+  .msg p { margin-top: 2px; font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .msg-a { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 
-  .cases { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .case { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); }
-  .case-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-  .case-h b { font-size: 16px; color: var(--head); }
-  .case-h em { margin-left: auto; font-style: normal; font-size: 12.5px; color: var(--muted); }
-  .ref { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
-  .figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .figs div { min-width: 0; }
-  .figs span { display: block; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  .figs b { display: block; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .figs .dif b { color: var(--warn); }
-  .figs .zero b { color: var(--ok); }
-  .cause { font-size: 13.5px; }
-  .cause b { color: var(--head); }
-  .case.done { grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg); }
-  .case.done .ok { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ok-bright); color: #fff; }
-  .case.done .ok .ic { width: 15px; height: 15px; stroke-width: 3.5; }
-  .case.done.skip .ok { background: #E0A62B; }
-  .case.done b { display: block; font-size: 14px; }
-  .case.done span.d { display: block; font-size: 12.5px; color: var(--muted); }
-  .freed { grid-column: 1 / -1; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--ok-tint); color: var(--text); font-size: 13.5px; font-weight: 600; }
-  .freed .ic { margin-top: 1px; color: var(--ok); }
-  .freed.anim { animation: rise .5s var(--ease) both; }
-  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
-
-  .sum-big { margin-top: 14px; }
-  .sum-big b { display: block; font-size: 28px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
-  .sum-big span { font-size: 12.5px; color: var(--on-ink); }
-  .ink-card .split { margin-top: 12px; height: 12px; background: rgba(255, 255, 255, .18); }
-  .sum-l { display: grid; grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
-  .sum-l li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(255, 255, 255, .14); font-size: 13px; }
-  .sum-l li:last-child { border-bottom: 0; }
-  .sum-l span { display: inline-flex; align-items: center; gap: 8px; color: var(--on-ink); }
-  .sum-l span i { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
-  .sum-l b { color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .cuadra { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, .08); font-size: 13px; }
-  .cuadra b { color: #fff; }
-  .cuadra.ok { background: rgba(34, 163, 93, .22); }
-
-  .hold { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 18px; border-radius: var(--radius); border: 2px solid var(--bad); background: var(--bad-tint); }
-  .hold.free { border-color: var(--ok-bright); background: var(--ok-tint); }
-  .hold-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
-  .hold-h b { font-size: 17px; color: var(--head); }
-  .hold-h em { margin-left: auto; font-style: normal; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--head); }
-  .hold p { font-size: 14px; }
-
-  .clis { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin-top: 12px; }
-  .cli { display: grid; grid-template-columns: 92px minmax(0, 1fr) 104px 18px; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 8px; border-radius: 10px; border: 0; background: transparent; text-align: left; font-size: 13.5px; }
-  .cli:hover, .cli.on { background: var(--bg); }
-  .cli .cn { font-weight: 700; }
-  .cli .cb { display: block; min-width: 0; }
-  .cli .bar { display: block; height: 12px; border-radius: 4px; background: #ECEEF1; overflow: hidden; }
-  .cli .bar i { display: block; height: 100%; border-radius: 4px; background: #7B818C; }
-  .cli .bar i.hi { background: #E0A62B; }
-  .cli .bar i.max { background: var(--bad); }
-  .cli .cb small { display: block; margin-top: 3px; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cli .cv { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .cli .ic { width: 16px; height: 16px; color: var(--muted); transition: transform .2s; }
-  .cli.on .ic { transform: rotate(90deg); }
-  .facts { display: grid; grid-template-columns: minmax(0, 1fr); margin: 2px 0 10px; padding: 6px 14px; border-radius: 12px; background: var(--bg); }
-  .facts > div { display: grid; grid-template-columns: 86px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
-  .facts > div:last-child { border-bottom: 0; }
-  .facts .mono { font-size: 12.5px; }
-  .facts span.v { color: var(--muted); }
-  .facts span.v.late { color: var(--bad); font-weight: 700; }
-  .facts b { font-variant-numeric: tabular-nums; }
-
-  .aging { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 12px; }
-  .ag { display: grid; grid-template-columns: 96px minmax(0, 1fr) 108px; align-items: center; gap: 10px; font-size: 13.5px; }
-  .ag .bar { height: 16px; border-radius: 4px; background: #ECEEF1; overflow: hidden; }
-  .ag .bar i { display: block; height: 100%; border-radius: 4px; }
-  .ag b { text-align: right; font-variant-numeric: tabular-nums; }
   .two { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+  .paper { min-width: 0; border-radius: 6px; background: #fff; border: 1px solid var(--border); box-shadow: 0 2px 0 #E8E9EC, 0 14px 30px rgba(29, 31, 36, .10); padding: 18px 16px 16px; font-size: 13.5px; }
+  .paper-tag { display: inline-block; margin-bottom: 10px; padding: 2px 8px; border-radius: 4px; background: #ECEEF1; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .paper-from { display: flex; flex-wrap: wrap; gap: 2px 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--muted); }
+  .paper-from b { color: var(--text); overflow-wrap: anywhere; }
+  .paper-body { margin-top: 12px; line-height: 1.55; }
+  .paper-body mark { background: none; color: inherit; border-radius: 3px; padding: 1px 2px; margin: -1px -2px; }
+  .paper.read .paper-body mark { background: var(--info-tint); box-shadow: 0 0 0 1px #BFD4EE; }
+  .attach { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 6px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 12px; }
+  .attach .ic { width: 16px; height: 16px; }
+  .oc { margin-top: 12px; border: 1px solid #C9CBD1; }
+  .oc-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 8px 10px; background: #F1F2F4; border-bottom: 1px solid #C9CBD1; font-weight: 800; font-size: 12.5px; }
+  .oc-h span { font-weight: 600; color: var(--muted); }
+  .oc-r { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 8px 10px; border-bottom: 1px dashed #D6D8DD; font-family: var(--font-mono); font-size: 12.5px; }
+  .oc-r:last-child { border-bottom: 0; }
+  .oc-r b { font-weight: 700; white-space: nowrap; }
+  .paper.read .oc-r { background: linear-gradient(90deg, #FFF6CC, #FFF6CC) no-repeat left / 100% 100%; }
+  .paper.read.anim .oc-r { animation: sweep .5s var(--ease) both; animation-delay: calc(var(--i) * .28s); }
+  @keyframes sweep { from { background-size: 0 100%; } }
+  .bubble { margin-top: 12px; max-width: 34ch; padding: 10px 12px; border-radius: 4px 14px 14px 14px; background: #DCF8C6; font-size: 14px; line-height: 1.45; }
+
+  .empty { display: grid; place-items: center; gap: 12px; min-height: 180px; padding: 20px; border-radius: 12px; border: 1.5px dashed var(--border); text-align: center; color: var(--muted); font-size: 13.5px; }
+  .xls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .xl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+  .xls.anim .xl { animation: rise .45s var(--ease) both; animation-delay: calc(var(--i) * .28s + .15s); }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  .xl-q { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+  .xl-q span { min-width: 0; overflow-wrap: anywhere; }
+  .xl-q em { font-family: var(--font); font-style: normal; font-size: 14.5px; font-weight: 800; color: var(--head); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .xl-m { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .xl-m b { font-size: 14.5px; color: var(--head); }
+  .xl-m code { font-family: var(--font-mono); font-size: 12px; padding: 1px 6px; border-radius: 5px; background: var(--bg); border: 1px solid var(--border); }
+  .xl.doubt { border-color: var(--warn-border); background: var(--warn-tint); }
+  .opts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 6px; }
+  .opt { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; width: 100%; min-height: 48px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface); text-align: left; }
+  .opt:hover { border-color: var(--head); }
+  .opt b { font-size: 14.5px; color: var(--head); }
+  .opt b small { margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--ok-tint); color: var(--ok); font-size: 11px; font-weight: 800; white-space: nowrap; }
+  .opt span { font-size: 12.5px; color: var(--muted); }
+  .opt.on { border-color: var(--ok); background: var(--ok-tint); }
+
+  .checks { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .check { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); }
+  .checks.anim .check { animation: rise .45s var(--ease) both; animation-delay: calc(var(--i) * .35s); }
+  .check-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .check-h b { font-size: 15.5px; color: var(--head); }
+  .check-h .pill { margin-left: auto; }
+  .cupo { display: flex; height: 22px; border-radius: 11px; overflow: hidden; background: #ECEEF1; }
+  .cupo i { display: block; height: 100%; }
+  .cupo .u { background: #7B818C; }
+  .cupo .p { background: var(--ok-bright); }
+  .cupo .x { background: repeating-linear-gradient(135deg, var(--acc), var(--acc) 6px, #E04A54 6px, #E04A54 12px); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; }
+  .legend b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .mail { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); font-size: 13.5px; line-height: 1.55; }
+  .mail-h { display: flex; flex-wrap: wrap; gap: 2px 10px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--muted); }
+  .mail-h b { color: var(--text); }
+
+  .res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 12px; }
+  .res li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+  .res .ic { width: 18px; height: 18px; margin-top: 2px; color: var(--ok); stroke-width: 3; }
+  .res li.w .ic { color: var(--warn); }
 
   @media (min-width: 900px) {
-    .two { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
-    .files { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .two { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
   }
-  @media (max-width: 480px) {
-    .trio b { font-size: 21px; }
-    .trio span { font-size: 11.5px; }
-    .figs b { font-size: 14px; }
-    .case.done { grid-template-columns: 28px minmax(0, 1fr); }
-    .case.done .link { grid-column: 2; justify-self: start; padding: 0; }
-    .cli { grid-template-columns: 76px minmax(0, 1fr) 80px 14px; gap: 8px; padding: 6px 4px; }
-    .cli .cb small { white-space: normal; }
-    .ag { grid-template-columns: 84px minmax(0, 1fr) 96px; gap: 8px; font-size: 13px; }
-    .hold-h em { margin-left: 0; }
-    .facts > div { grid-template-columns: 76px minmax(0, 1fr) auto; gap: 8px; }
+  @media (max-width: 759px) {
+    .steps { width: 100%; }
+    .step { flex: 1 1 0; justify-content: center; padding: 0 6px; font-size: 12.5px; }
+    .step i { display: none; }
+  }
+  @media (max-width: 520px) {
+    .msg { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; padding: 12px; }
+    .msg .ch { width: 40px; height: 40px; }
+    .msg-a { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
+    .check-h .pill { margin-left: 0; }
   }
 </style>
 </head>
@@ -367,21 +355,21 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
-  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
   <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
-  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19L12 3.5Z"/><path d="M12 10v4.5M12 17.3v.2"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></symbol>
   <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
-  <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 9.5 12 4l9 5.5M4.5 10v8M9.5 10v8M14.5 10v8M19.5 10v8M3 20h18"/></symbol>
-  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V5M4 20h16M8.5 16v-5M13 16V8M17.5 16v-7"/></symbol>
-  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2.5 6h11v10h-11zM13.5 9.5h4l3 3.5V16h-7"/><circle cx="6.5" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9.5L4 20V5Z"/><path d="M8 9.5h8M8 12.5h5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 4v16"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9z"/><path d="M19 16.5v4M17 18.5h4"/></symbol>
 </svg>
 
 <header class="top">
   <div class="brand">
     <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0zNDkgLTQzNiA1NDQgMTExIj48cGF0aCBmaWxsPSIjQkYwNDExIiBkPSJNLTIzNS41MTQtNDMyLjY4NWgtMzcuNDUyaC0xLjc0MXYxLjczN3YyLjc2MnYxLjU5MmwxLjU5OCwwLjE0YzYuNzE1LDAuNTU3LDkuMzE3LDEuNzcsMTAuMjk0LDIuNjkxIGMxLjQ5MywxLjQ0OCwzLjMwMiw1LjIzOCwzLjMwMiwxNC44ODN2NDUuNTM2bC01OC4xMDQtNjguNzMxbC0wLjUwOC0wLjYwOWgtMC44MDRoLTI3LjA5NGgtMS43MzV2MS43Mzd2Mi43NjJ2MS42NzhsMS42ODIsMC4wNTggYzMuMDIzLDAuMDksNS4zMDEsMC40MTEsNi43NDYsMC45NDJjMC45MjksMC4zNTQsMi41OTgsMS40MDksNS4yNzUsNC4zNjJsMS43MzUsMS45M3Y2NS43NjljMCw5LjMwOC0xLjI5NCwxMi43ODctMi4zODIsMTQuMDYzIGMtMS4wNzksMS4yNDctMy45NDksMi44OTctMTEuNDk2LDMuNjMxbC0xLjU2MSwwLjE1NnYxLjU2MXYyLjc2N3YxLjczN2gxLjczM2gzNy40NTJoMS43MzV2LTEuNzM3di0yLjc2N3YtMS41NTVsLTEuNTU0LTAuMTY1IGMtNi45OTctMC43MTctOS4zNTItMi4wNzgtMTAuMTM2LTIuODM4Yy0xLjQ2Ni0xLjQ0Ny0zLjIzNi01LjIyOS0zLjIzNi0xNC44MzZ2LTUzLjkzNWw2Ny4wMTQsNzkuMjc4bDAuNTE1LDAuNjIzaDAuODAxaDIuNzMyIGgxLjc0MXYtMS43NDN2LTc5LjU3OWMwLTkuMjcxLDEuMzk2LTEyLjc0MywyLjU2MS0xNC4wMjZjMS4xNzgtMS4yOTQsNC4wNDYtMi45NzIsMTEuMDQ5LTMuNjVsMS41ODEtMC4xNDV2LTEuNTgxdi0yLjc2MnYtMS43NCBoLTEuNzQxVi00MzIuNjg1eiIvPjxwYXRoIGZpbGw9IiNCRjA0MTEiIGQ9Ik0tMTA2Ljg2OS00MzIuNjg1aC0zNy4xODhoLTEuNzM3djEuNzM3djIuNzYydjEuNTgxbDEuNTgzLDAuMTQ1YzUuMjYsMC40ODYsOC45ODIsMS42NTksMTAuNzM1LDMuNDIgYzAuOTczLDAuOTgsMi42MTEsNC4xMjgsMi42MTEsMTQuMTM3djM5LjI5NWMwLDkuMjgxLTEuMTc2LDE2LjIwMy0zLjQ3NiwyMC41NGMtNC4xODEsNy43MTYtMTIuMjUxLDExLjQ1Ny0yNC42MjgsMTEuNDU3IGMtMTEuMjc0LDAtMTguNjMzLTMuNjM1LTIyLjUyMy0xMS4xMzJjLTIuMTY3LTQuMTM3LTMuMjQ3LTEwLjA3OC0zLjI0Ny0xNy42N3YtNDguMjJjMC02LjU1MiwxLjMyNS04LjY0NywyLjExMy05LjMyNCBjMS4wNjUtMC44NzYsMy44MDktMi4wMjksMTAuOTI0LTIuNDkzbDEuNjI1LTAuMTA4di0xLjYyMnYtMi43NjJ2LTEuNzM3aC0xLjczNGgtNDUuMDQ3aC0xLjc0NHYxLjczN3YyLjc2MnYxLjYwOGwxLjYwNSwwLjEyMSBjNy40MywwLjUzNSw5LjkxMywxLjgyNiwxMC43MjgsMi41NDljMC43NzEsMC42NzcsMi4wNjcsMi43NzIsMi4wNjcsOS4yNjh2NDcuMDQ2YzAsOS42MDMsMS44MDgsMTcuNDcxLDUuMzc0LDIzLjM5MyBjNi40NzMsMTEuMDg4LDE4Ljc2OCwxNi43MzIsMzYuNDgxLDE2LjczMmMxNy45MDksMCwzMC4yNzctNS43MTUsMzYuNzY1LTE2Ljk5OWMzLjUwNy02LjA2Niw1LjI2LTE0LjU0Nyw1LjI2LTI1LjIxOXYtMzkuMjE5IGMwLTkuMjE2LDEuMzQ3LTEyLjY2MSwyLjQ3NC0xMy45MDdjMS4xMTQtMS4yNzEsMy45Ny0yLjkxNywxMS4xNTctMy42NWwxLjU2My0wLjE2NHYtMS41NjF2LTIuNzYydi0xLjczN0wtMTA2Ljg2OS00MzIuNjg1IEwtMTA2Ljg2OS00MzIuNjg1eiIvPjxwYXRoIGZpbGw9IiNCRjA0MTEiIGQ9Ik0tNS43ODUtNDA1LjUwNWwtMC43NzUtMjUuNTAzbC0wLjA0OC0xLjY4aC0xLjY5N2gtODkuNTUxaC0xLjY5OWwtMC4wNDIsMS42OGwtMC43ODIsMjUuNTAzbC0wLjA0NCwxLjc4OCBoMS43ODZoMy45MjNoMS40MzFsMC4yNzEtMS40MDdjMS40ODYtNy42MDQsMy42NTktMTIuNTI0LDYuNDc3LTE0LjYzN2MyLjg3OS0yLjE0OCw4LjU4Mi0zLjI0NCwxNi45NjktMy4yNDRoNi45MDR2NzMuNTkyIGMwLDcuODgyLTEuMjQ0LDEwLjI2LTEuOTgxLDEwLjk2NGMtMC43NSwwLjc1My0zLjI2MywyLjA5Ny0xMS42MDIsMi42ODlsLTEuNjA3LDAuMTA5djEuNjE1djIuNzY3djEuNzM3aDEuNzM3aDQ2LjA4NGgxLjczOSB2LTEuNzM3di0yLjc2N3YtMS42MTVsLTEuNjIxLTAuMTA5Yy03LjQzNy0wLjUxNi0xMC4zMTgtMS42MDUtMTEuNDI4LTIuNDJjLTAuODA0LTAuNTgtMi4xNDktMi41NzctMi4xNDktOS4zOTZ2LTc1LjQyOGg2LjkxMSBjMTAuODMyLDAsMTUuMTg2LDEuNzU2LDE2LjkyNSwzLjIxOWMyLjU3NiwyLjE1Nyw0Ljc3MSw3LjExMSw2LjUxNiwxNC43MjJsMC4zMTMsMS4zNDVoMS4zODdoMy45MzdoMS43ODhMLTUuNzg1LTQwNS41MDV6Ii8+PHBhdGggZmlsbD0iI0JGMDQxMSIgZD0iTTkyLjk1LTM1OC4yNzRoLTQuMjU1aC0xLjA4MWwtMC40NzEsMC45NjljLTMuOTU4LDguMDM4LTguMzQ0LDEzLjE0My0xMy4wMzcsMTUuMTY3IGMtNC44NjMsMi4wOTUtMTIuNjcyLDMuMTU5LTIzLjE4LDMuMTU5Yy0xMi4xMTMsMC0xNi4xMzMtMC40MDQtMTcuNDAzLTAuNzUzYy0wLjQ1Mi0wLjEwOS0xLjY4OC0wLjQ0NS0xLjY4OC0zLjYwN3YtMzUuNTc0aDIyLjYwOSBjOC4xODgsMCwxMC44NjcsMS40NiwxMS43MjUsMi4zMjljMS4xMTQsMS4xNDEsMi43NTYsMy45MjgsNC4xMjEsMTAuNzUxbDAuMjgyLDEuNDA1aDEuNDE0aDMuNjcyaDEuNzQ4di0xLjczOHYtMzQuOTI5di0xLjczNCBoLTEuNzQ4aC0zLjY3MmgtMS40MjJsLTAuMjczLDEuNDExYy0xLjMxMiw2Ljc5MS0yLjkzMiw5LjU3Mi00LjAzOCwxMC43MDZjLTAuODg1LDAuODc3LTMuNTY2LDIuMzU4LTExLjgxMSwyLjM1OEgzMS44MzJ2LTMxLjk4NSBjMC0yLjE4MiwwLjMzNy0yLjgxNywwLjQyOS0yLjkyOGMwLjAzMS0wLjA0MywwLjY0Ny0wLjQyMiwzLjAwMy0wLjQyMmgyMS43OTFjMTEuMTA0LDAsMTUuMzg5LDEuNDA3LDE3LjAyNCwyLjU5IGMyLjI3NiwxLjY2Miw0LjE0Niw1Ljc1Niw1LjM4OSwxMS44NThsMC4yNzEsMS4zODZoMS40NDRoMy45MDFoMS44MDFsLTAuMDYyLTEuODA1bC0wLjc4NC0yMS4zNjJsLTAuMDUzLTEuNjY3SDg0LjMxSDAuMjQ3aC0xLjczIHYxLjc0djIuNzYydjEuNjE1bDEuNjA3LDAuMTE3YzYuNzIzLDAuNDQ0LDkuMjk5LDEuNjQ3LDEwLjIzNywyLjU3NGMwLjkyOSwwLjg5MywyLjAyMywzLjIwMSwyLjAyMyw5LjI0NXY2Ny4wNiBjMCw2LjkxNC0xLjM3MSw4Ljc2LTEuOTQ4LDkuMjM1Yy0xLjAwNCwwLjc5OC0zLjYxMiwxLjg5OS0xMC4zNjksMi41ODZsLTEuNTU0LDAuMTY1djEuNTUydjIuNzd2MS43MzloMS43MzNoODUuODA4aDEuMzI2IGwwLjM1LTEuMjc3bDYuOTA2LTI1LjI3MWwwLjU4OC0yLjE5Nkw5Mi45NS0zNTguMjc0TDkyLjk1LTM1OC4yNzR6Ii8+PHBhdGggZmlsbD0iI0JGMDQxMSIgZD0iTTE4Ny42MjEtMzYzLjg0NWgtMS4yODVsLTAuMzc5LDEuMjA4Yy0yLjAzNiw2LjQ0My00LjcyNSwxMS43MDUtNy45NywxNS42MzQgYy02LjIzOCw3LjM1OS0xNC4zODksMTAuOTQ3LTI0LjkyNSwxMC45NDdjLTEwLjUwNCwwLTE5LjIxNS0zLjk4MS0yNS44NjgtMTEuODU4Yy02LjYwNi03LjgxNS0xMC4wMDUtMTguNzg2LTEwLjEwMy0zMi41OTggYzAuMDk5LTEzLjc1MywzLjQ5OS0yNC43MDYsMTAuMDg1LTMyLjUyMWM2Ljc2MS03Ljk4MiwxNS4yMTMtMTEuODc2LDI1Ljg4Ni0xMS44NzZjMTAuNTM2LDAsMTguNjg3LDMuNjAxLDI0LjkzOCwxMC45NzUgYzMuMjMxLDMuOTA0LDUuOTE4LDkuMTYsNy45NDcsMTUuNjE1bDAuMzgzLDEuMjEzaDEuMjgxaDMuNjVoMS44MjVsLTAuMDc3LTEuODIybC0xLjU2Ny0zMy43NjFsLTAuMDg0LTEuNjU5aC0xLjY0OGgtMi44ODdoLTEuMjQzIGwtMC40MDcsMS4xN2MtMC40MjgsMS4yNzMtMS4xMSwyLjE2NC0yLjA3OCwyLjc0MWMtMS4wODYsMC42MTktMi4xNzYsMC45MzEtMy4zMjcsMC45MzFjLTAuMjM1LTAuMDE4LTEuNzE5LTAuMjIzLTkuNzUzLTIuMzYyIGMtNi4xNzUtMS42NDEtMTIuMjcyLTIuNDc4LTE4LjEwNi0yLjQ3OGMtMTYuOTgyLDAtMzAuOTU2LDUuNDQ0LTQxLjUzOSwxNi4xN2MtOS40NDksOS42MzItMTQuNDUxLDIxLjYxLTE0Ljk4MywzNS41NjVoLTAuMTAxIGMtMC4wMzEsMC0wLjAzMSwxLjczOC0wLjAzMSwxLjczOGMwLDAuMTI4LDAsMC4yNDUsMCwwLjMyMmMwLjAxOCwwLjA1NCwwLjAxOCwwLjA1NCwwLjAxOCwwLjA1NGMwLDAuMDA0LTAuMDA0LDAuMDU0LTAuMDE4LDAuMDc4IGMwLDAuMDkyLDAsMC4yMDgsMCwwLjMzMnYxLjU5NGwwLjEyNywwLjAxN2MwLjUxOCwxNC4wMjEsNS41MTMsMjYuMDQzLDE0Ljk4OCwzNS43MDhjMTAuNTc2LDEwLjcyOSwyNC41NiwxNi4xNTgsNDEuNTM0LDE2LjE1OCBjNS44MjEsMCwxMS45MjgtMC44MzcsMTguMTIzLTIuNDg1YzguMDA5LTIuMTM0LDkuNTA2LTIuMzQ1LDkuNzc0LTIuMzQ3YzEuMTE4LDAsMi4yMDgsMC4yOTEsMy4zMDMsMC45MjUgYzAuOTU1LDAuNTgxLDEuNjM4LDEuNDY0LDIuMDYxLDIuNzMybDAuNDExLDEuMTc2aDEuMjQ0aDIuODg2aDEuNjUzbDAuMDg0LTEuNjUxbDEuNTY1LTMzLjc2M2wwLjA3Ny0xLjgyNGgtMS44MjNMMTg3LjYyMS0zNjMuODQ1IEwxODcuNjIxLTM2My44NDV6Ii8+PC9zdmc+" alt="NUTEC">
-    <div class="brand-t"><b>Conciliación y cartera</b><span>Tesorería y crédito</span></div>
+    <div class="brand-t"><b>Pedidos con IA</b><span>Área comercial</span></div>
   </div>
   <span class="proto">PROTOTIPO<span class="mid"> · TURINGTECH</span><span class="long"> · DATOS ILUSTRATIVOS</span></span>
   <button class="tbtn" id="modeBtn" type="button"></button>
@@ -390,14 +378,14 @@
 
 <main class="wrap">
   <div class="coach" id="coach" aria-live="polite"></div>
-  <nav class="tabs" id="tabs" aria-label="Secciones"></nav>
+  <nav class="steps" id="steps" aria-label="Pasos"></nav>
   <div id="view"></div>
 </main>
 
 <footer class="foot">
   Prototipo elaborado por <b>TURINGTECH</b> para Grupo NUTEC. No es un sistema de NUTEC.
-  Clientes, bancos, facturas, montos, cupos, días de vencimiento y el porcentaje de retención son ilustrativos y no provienen de datos de NUTEC.
-  La carga de extractos, el cruce, el registro en JD Edwards y la liberación del pedido están simulados.
+  Clientes, productos, códigos, precios, stock, cupos y porcentajes de lectura son ilustrativos y no provienen de datos de NUTEC.
+  La lectura con IA, la validación y el pedido en JD Edwards, y la respuesta al cliente están simulados.
 </footer>
 
 <div class="overlay" id="overlay"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
@@ -406,105 +394,77 @@
 /* =====================================================================
    DATOS ILUSTRATIVOS. Todo lo que el prototipo muestra sale de este bloque.
    Para adaptar el prototipo con insumos reales, se edita solo aquí.
-   Montos en centavos de dólar.
+   Montos en centavos de dólar; cantidades en kilogramos.
    ===================================================================== */
 const DATA = {
-  semilla: 20261007,
   ivaPct: 15,
-  retPct: 1.75,                 // retención en la fuente sobre la base, ilustrativa
-  comision: 2500,               // comisión que descuenta el banco en una transferencia del exterior
-  minutosPorMovimiento: 4,      // supuesto para estimar el cruce manual; se mide con NUTEC
-  bancos: { A: 'Banco A', B: 'Banco B' },
-  // cupo de crédito por cliente
-  clientes: {
-    A: { n: 'Cliente A', cupo: 6000000 }, B: { n: 'Cliente B', cupo: 2500000 }, C: { n: 'Cliente C', cupo: 9000000 },
-    D: { n: 'Cliente D', cupo: 6000000 }, E: { n: 'Cliente E', cupo: 8000000 }, F: { n: 'Cliente F', cupo: 4000000 },
-    G: { n: 'Cliente G', cupo: 4500000 }, H: { n: 'Cliente H', cupo: 4000000 }
+  sacoKg: 25,
+  minutosPorLinea: 3,          // supuesto para estimar la digitación manual; se mide con NUTEC
+  bodegas: { GYE: 'Guayaquil', UIO: 'Quito' },
+  // precio = centavos por kg · stock = kg por bodega
+  catalogo: {
+    'PEBD-PEL':  { n: 'Polietileno de baja densidad · película', precio: 138, stock: { GYE: 46000, UIO: 9000 } },
+    'PEAD-SOP':  { n: 'Polietileno de alta densidad · soplado',  precio: 129, stock: { GYE: 31000, UIO: 6500 } },
+    'PP-HOMO':   { n: 'Polipropileno homopolímero · rafia',      precio: 124, stock: { GYE: 22000, UIO: 4000 } },
+    'PP-COPO':   { n: 'Polipropileno copolímero · inyección',    precio: 131, stock: { GYE: 14000, UIO: 3500 } },
+    'PVC-SUSP':  { n: 'PVC suspensión',                          precio: 98,  stock: { GYE: 18000, UIO: 1500 } },
+    'MB-BLANCO': { n: 'Masterbatch blanco',                      precio: 285, stock: { GYE: 2600,  UIO: 800 } },
+    'KRAFT-LIN': { n: 'Papel kraft liner',                       precio: 71,  stock: { GYE: 64000, UIO: 0 } },
+    'WHITE-TOP': { n: 'White top liner',                         precio: 88,  stock: { GYE: 27000, UIO: 0 } }
   },
-  // Cartera abierta. d = días respecto al vencimiento (positivo: vencida hace d días; negativo: vence en d días)
-  facturas: [
-    { id: 'F-004211', c: 'A', m: 864000, d: 12 }, { id: 'F-004218', c: 'A', m: 792000, d: 9 }, { id: 'F-004236', c: 'A', m: 782000, d: 5 },
-    { id: 'F-004402', c: 'A', m: 945000, d: -9 }, { id: 'F-004431', c: 'A', m: 742000, d: -21 },
-    { id: 'F-004377', c: 'B', m: 218000, d: 2 }, { id: 'F-004419', c: 'B', m: 392000, d: -15 },
-    { id: 'F-004290', c: 'C', m: 598000, d: 1 }, { id: 'F-004366', c: 'C', m: 616000, d: 3 }, { id: 'F-004408', c: 'C', m: 926000, d: -6 }, { id: 'F-004440', c: 'C', m: 1240000, d: -20 },
-    { id: 'F-004301', c: 'D', m: 805000, d: 4 }, { id: 'F-004425', c: 'D', m: 1420000, d: -12 },
-    { id: 'F-004312', c: 'E', m: 1200000, d: 6 }, { id: 'F-004260', c: 'E', m: 2275000, d: 18 },
-    { id: 'F-004333', c: 'F', m: 345000, d: 7 }, { id: 'F-004187', c: 'F', m: 630000, d: 41 },
-    { id: 'F-004102', c: 'G', m: 1890000, d: 75 }, { id: 'F-004436', c: 'G', m: 415000, d: -18 },
-    { id: 'F-004349', c: 'H', m: 987500, d: 8 }
+  // cupo y usado en centavos · plazo en días
+  clientes: {
+    A: { n: 'Cliente A', giro: 'fábrica de fundas y empaques', cod: 'C-0147', cupo: 6000000, usado: 4125000, plazo: 30 },
+    B: { n: 'Cliente B', giro: 'fábrica de tuberías',          cod: 'C-0212', cupo: 2500000, usado: 610000,  plazo: 30 },
+    C: { n: 'Cliente C', giro: 'cartonera',                    cod: 'C-0089', cupo: 9000000, usado: 3380000, plazo: 45 }
+  },
+  // txt y cant = lo que escribió el cliente · kg y cod = lo que entiende la IA · conf = % de confianza de la lectura
+  pedidos: [
+    { id: 'p1', canal: 'correo', cliente: 'A', bodega: 'GYE', hace: 'hace 6 min', jde: 'SO\u00a02600412',
+      asunto: 'Orden de compra 4471', de: 'compras@cliente-a.ejemplo', adjunto: 'OC-4471.pdf',
+      texto: ['Estimados, adjunto la orden de compra 4471. ', 'Ayer transferimos el pago de las facturas de agosto.', ' Por favor confirmar la fecha de entrega en nuestra planta de Guayaquil.'],
+      aviso: 'El correo dice que ayer transfirieron el pago de las facturas de agosto. Se avisa a Cobranzas para que lo confirme.',
+      lineas: [
+        { txt: 'Polietileno baja densidad p/ película', cant: '12000 kg', kg: 12000, cod: 'PEBD-PEL', conf: 98 },
+        { txt: 'PEAD soplado', cant: '8 TM', kg: 8000, cod: 'PEAD-SOP', conf: 96, nota: '8 TM convertidas a kilogramos' },
+        { txt: 'Master blanco', cant: '20 sacos', kg: 500, cod: 'MB-BLANCO', conf: 94, nota: '20 sacos de 25 kg' },
+        { txt: 'PP', cant: '5000 kg', kg: 5000, cod: null, conf: 61, opciones: ['PP-HOMO', 'PP-COPO'], sugerido: 'PP-HOMO', motivo: 'Es lo que este cliente pidió en sus últimos 4 pedidos.' }
+      ] },
+    { id: 'p2', canal: 'whatsapp', cliente: 'B', bodega: 'UIO', hace: 'hace 14 min', jde: 'SO\u00a02600413',
+      asunto: 'Mensaje de WhatsApp',
+      texto: ['Buenos días, necesito 3 toneladas de PVC suspensión y 40 sacos de PP copo para el jueves en Quito porfa'],
+      lineas: [
+        { txt: '3 toneladas de PVC suspensión', kg: 3000, cod: 'PVC-SUSP', conf: 97, nota: '3 toneladas convertidas a kilogramos' },
+        { txt: '40 sacos de PP copo', kg: 1000, cod: 'PP-COPO', conf: 95, nota: '40 sacos de 25 kg' }
+      ] },
+    { id: 'p3', canal: 'excel', cliente: 'C', bodega: 'GYE', hace: 'hace 22 min', jde: 'SO\u00a02600414',
+      asunto: 'Pedido de octubre', adjunto: 'Pedido_octubre.xlsx',
+      texto: ['Buen día, envío el pedido del mes en el Excel adjunto.'],
+      lineas: [
+        { txt: 'KRAFT LINER', kg: 18000, cod: 'KRAFT-LIN', conf: 99 },
+        { txt: 'WHITE TOP', kg: 10000, cod: 'WHITE-TOP', conf: 98 }
+      ] }
   ],
-  // Pagos que coinciden con una factura: uno fijo y el resto generado con la semilla (n por cliente)
-  exactos: [{ c: 'B', f: 'F-004377' }],
-  generados: [{ c: 'D', n: 9 }, { c: 'E', n: 8 }, { c: 'F', n: 7 }, { c: 'G', n: 6 }, { c: 'H', n: 6 }],
-  primeraGenerada: 4501, montoMin: 60000, montoRango: 360000,
-  // Movimientos que necesitan a una persona. movs = lo que llegó al banco · fs = facturas que cancela
-  casos: [
-    { id: 'c1', c: 'A', banco: 'A', tipo: 'varias', ref: 'TRANSF CLIENTE A PAGO FACT AGOSTO', fs: ['F-004211', 'F-004218', 'F-004236'],
-      causa: 'Un solo pago que suma exactamente tres facturas vencidas de agosto.', accion: 'Aplicar a las 3 facturas', hecho: 'Pago aplicado a 3 facturas', destino: 'aplicado' },
-    { id: 'c2', c: 'D', banco: 'A', tipo: 'retencion', ref: 'TRANSF CLIENTE D F-004301', fs: ['F-004301'],
-      causa: 'El cliente pagó la factura menos la retención en la fuente sobre la base.', accion: 'Registrar la retención', hecho: 'Factura cancelada; retención registrada, a la espera del comprobante', destino: 'retencion' },
-    { id: 'c3', c: 'F', banco: 'B', tipo: 'sinref', ref: 'DEPOSITO VENTANILLA SIN REFERENCIA', fs: ['F-004333'],
-      causa: 'Depósito sin referencia. Solo una factura abierta coincide con ese valor exacto: la F-004333 de Cliente F.', accion: 'Aplicar a Cliente F', hecho: 'Depósito aplicado a la factura de Cliente F', destino: 'aplicado' },
-    { id: 'c4', c: 'C', banco: 'B', tipo: 'duplicado', ref: 'TRANSF CLIENTE C F-004290 (dos veces)', fs: ['F-004290'],
-      causa: 'La misma factura llegó pagada en dos transferencias.', accion: 'Registrar saldo a favor', hecho: 'Factura cancelada; el segundo pago queda como saldo a favor', destino: 'favor' },
-    { id: 'c5', c: 'E', banco: 'A', tipo: 'comision', ref: 'TRANSF EXTERIOR CLIENTE E', fs: ['F-004312'],
-      causa: 'Transferencia del exterior: el banco descontó su comisión antes de acreditar.', accion: 'Registrar el gasto bancario', hecho: 'Factura cancelada; comisión registrada como gasto bancario', destino: 'gasto' }
-  ],
-  tipos: { varias: ['Un pago, varias facturas', 'info'], retencion: ['Pago con retención', 'warn'], sinref: ['Depósito sin identificar', 'bad'], duplicado: ['Pago duplicado', 'info'], comision: ['Comisión bancaria', 'warn'] },
-  // Pedido que quedó retenido por cupo en el prototipo de pedidos (total en centavos)
-  pedido: { jde: 'SO 2600412', c: 'A', total: 3968075 },
-  tramos: [['Por vencer', -9999, 0, '#7B818C'], ['1 a 30 días', 1, 30, '#E0A62B'], ['31 a 60 días', 31, 60, '#D9772B'], ['Más de 60 días', 61, 9999, '#B3261E']]
+  canales: { correo: ['Correo con PDF', 'i-mail', 'em'], whatsapp: ['WhatsApp', 'i-chat', 'wa'], excel: ['Correo con Excel', 'i-grid', 'xl'] }
 };
 /* ===================================================================== */
 
-const KEY = 'nutec-conciliacion-cartera-prototipo-v1';
+const KEY = 'nutec-pedidos-ia-prototipo-v1';
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const icon = (id) => '<svg class="ic" aria-hidden="true"><use href="#' + id + '"/></svg>';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const miles = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const money = (c) => (c < 0 ? '-' : '') + '$' + miles(Math.floor(Math.abs(c) / 100)) + '.' + String(Math.abs(c) % 100).padStart(2, '0');
-const dolares = (c) => '$' + miles(Math.round(c / 100));
-const pct = (a, b) => Math.round(a / b * 100);
-const sum = (a, f) => a.reduce((s, o) => s + f(o), 0);
-
-/* ---------- Modelo: facturas y movimientos del banco (se arma una vez desde DATA) ---------- */
-const M = (function () {
-  let x = DATA.semilla % 2147483647, num = DATA.primeraGenerada, alt = 0;
-  const rnd = () => (x = (x * 48271) % 2147483647);
-  const facturas = DATA.facturas.map((f) => Object.assign({}, f));
-  const porId = (id) => facturas.find((f) => f.id === id);
-  const banco = () => (alt++ % 3 === 2 ? 'B' : 'A');
-  // Pagos exactos: una transferencia que cancela una factura
-  const exactos = DATA.exactos.map((e) => ({ c: e.c, f: e.f, m: porId(e.f).m, banco: banco() }));
-  DATA.generados.forEach((g) => {
-    for (let i = 0; i < g.n; i++) {
-      const f = { id: 'F-00' + (num++), c: g.c, m: DATA.montoMin + rnd() % DATA.montoRango, d: rnd() % 9 - 2, gen: true };
-      facturas.push(f);
-      exactos.push({ c: g.c, f: f.id, m: f.m, banco: banco() });
-    }
-  });
-  const casos = DATA.casos.map((k) => {
-    const fs = k.fs.map(porId), fact = sum(fs, (f) => f.m);
-    let movs = [fact];
-    if (k.tipo === 'retencion') movs = [fact - Math.round(Math.round(fact * 100 / (100 + DATA.ivaPct)) * DATA.retPct / 100)];
-    if (k.tipo === 'duplicado') movs = [fact, fact];
-    if (k.tipo === 'comision') movs = [fact - DATA.comision];
-    const bco = sum(movs, (v) => v);
-    return Object.assign({}, k, { fs, fact, movs, bco, dif: fact - bco });
-  });
-  const nMov = exactos.length + sum(casos, (k) => k.movs.length), nSug = sum(casos, (k) => k.movs.length);
-  const tExact = sum(exactos, (e) => e.m), tBanco = tExact + sum(casos, (k) => k.bco);
-  const porBanco = (b) => ({ n: exactos.filter((e) => e.banco === b).length + sum(casos.filter((k) => k.banco === b), (k) => k.movs.length), t: sum(exactos.filter((e) => e.banco === b), (e) => e.m) + sum(casos.filter((k) => k.banco === b), (k) => k.bco) });
-  return { facturas, exactos, casos, nMov, nSug, tExact, tBanco, porBanco, tCartera: sum(facturas, (f) => f.m) };
-})();
+const kg = (n) => miles(n) + ' kg';
+const P1 = DATA.pedidos[0];
 
 /* ---------- Estado ---------- */
 function initState() {
-  return { mode: 'guiado', view: 'teso', loaded: false, crossed: false, dec: {}, open: {}, reg: false, cartVista: false, cli: null, cliVisto: false, seenIntro: false };
+  return { mode: 'guiado', view: 'bandeja', cur: false, read: false, pick: null, valid: false, hold: null, created: false, batch: false, seenIntro: false };
 }
 let S = initState();
-let fresh = null;     // 'cross' | id de caso: lo recién hecho, para animar una sola vez
+let fresh = null;     // 'read' | 'valid': la acción recién hecha, para animar una sola vez
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -514,69 +474,68 @@ function load() {
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 
 /* ---------- Cálculos ---------- */
-const pendientes = () => M.casos.filter((k) => !S.dec[k.id]);
-const decididos = () => M.casos.length - pendientes().length;
-const hecho = (k) => S.dec[k.id] === 'ok';
-// Facturas que ya no están abiertas: las de los pagos exactos (al cruzar) y las de los casos aceptados.
-function canceladas() {
-  const ids = {};
-  if (S.crossed) M.exactos.forEach((e) => { ids[e.f] = 1; });
-  M.casos.filter(hecho).forEach((k) => k.fs.forEach((f) => { ids[f.id] = 1; }));
-  return ids;
-}
-const abiertas = () => { const x = canceladas(); return M.facturas.filter((f) => !x[f.id]); };
-// Reparte lo que llegó al banco: aplicado a facturas, saldo a favor de clientes y lo que falta revisar.
-function cuadre() {
-  const r = { aplicado: S.crossed ? M.tExact : 0, favor: 0, retencion: 0, gasto: 0, nFact: S.crossed ? M.exactos.length : 0 };
-  M.casos.filter(hecho).forEach((k) => {
-    r.aplicado += Math.min(k.bco, k.fact);
-    r.nFact += k.fs.length;
-    if (k.dif < 0) r.favor += -k.dif;
-    if (k.destino === 'retencion') r.retencion += k.dif;
-    if (k.destino === 'gasto') r.gasto += k.dif;
+// Líneas de un pedido con su producto ya resuelto (la línea dudosa usa lo que eligió la persona).
+function lineas(p) {
+  return p.lineas.map((l) => {
+    const cod = l.cod || (p.id === 'p1' ? S.pick : l.sugerido) || l.sugerido;
+    const prod = DATA.catalogo[cod];
+    return Object.assign({}, l, { cod, prod, importe: l.kg * prod.precio });
   });
-  r.revisar = M.tBanco - r.aplicado - r.favor;
-  r.canceladas = r.aplicado + r.retencion + r.gasto;
-  return r;
 }
-function cliente(c) {
-  const fs = abiertas().filter((f) => f.c === c), usado = sum(fs, (f) => f.m), cupo = DATA.clientes[c].cupo;
-  return { c, n: DATA.clientes[c].n, cupo, usado, disp: cupo - usado, fs: fs.sort((a, b) => b.d - a.d), vencido: sum(fs.filter((f) => f.d > 0), (f) => f.m), peor: Math.max.apply(null, fs.map((f) => f.d).concat([-9999])) };
+function totales(ls) {
+  const sub = ls.reduce((s, l) => s + l.importe, 0), iva = Math.round(sub * DATA.ivaPct / 100);
+  return { sub, iva, total: sub + iva };
 }
-function pedido() {
-  const p = DATA.pedido, k = cliente(p.c);
-  return Object.assign({}, p, { disp: k.disp, libre: k.disp >= p.total, falta: Math.max(0, p.total - k.disp) });
+const conIva = (c) => c + Math.round(c * DATA.ivaPct / 100);
+// Stock de una línea en la bodega del pedido; si falta, busca en la otra bodega.
+function stock(l, bod) {
+  const disp = l.prod.stock[bod];
+  if (l.kg <= disp) return { ok: true, disp };
+  const otra = Object.keys(DATA.bodegas).find((b) => b !== bod), falta = l.kg - disp;
+  return { ok: false, disp, falta, otra, cubre: l.prod.stock[otra] >= falta };
 }
+function credito(p) {
+  const c = DATA.clientes[p.cliente], t = totales(lineas(p)), disp = c.cupo - c.usado;
+  return { c, disp, total: t.total, exceso: Math.max(0, t.total - disp) };
+}
+// Despacho parcial: en el orden del pedido, entran las líneas que el cupo disponible alcanza a cubrir.
+function parcial(p) {
+  let resto = credito(p).disp;
+  return lineas(p).map((l) => {
+    const v = conIva(l.importe), entra = v <= resto;
+    if (entra) resto -= v;
+    return Object.assign(l, { ahora: entra, valor: v });
+  });
+}
+const nLineas = DATA.pedidos.reduce((s, p) => s + p.lineas.length, 0);
 function etapa() {
-  if (!S.loaded) return 0;
-  if (!S.crossed) return 1;
-  if (pendientes().length) return 2;
-  if (!S.reg) return 3;
-  if (!S.cartVista) return 4;
-  if (!S.cliVisto) return 5;
-  return 6;
+  if (!S.cur) return 0;
+  if (!S.read) return 1;
+  if (!S.pick) return 2;
+  if (!S.valid) return 3;
+  if (!S.hold) return 4;
+  if (!S.created) return 5;
+  if (!S.batch) return 6;
+  return 7;
 }
 
 /* ---------- Guía: una instrucción y un solo objetivo por paso ---------- */
-const VISTAS = [['teso', 'Tesorería', 'i-bank'], ['cart', 'Cartera y cupos', 'i-chart']];
+const VISTAS = [['bandeja', 'Bandeja'], ['lectura', 'Lectura'], ['validacion', 'Validación'], ['pedido', 'Pedido']];
+const alcanza = (v) => v === 'bandeja' || (v === 'lectura' && S.cur) || (v === 'validacion' && S.valid) || (v === 'pedido' && S.created);
 function coachStep() {
-  const total = 6, e = etapa();
+  const total = 7, e = etapa();
   if (e >= total) return { done: true, n: total, total };
   let p;
-  if (e === 0) p = { view: 'teso', sel: '#btnCargar', x: 'Cargue los archivos de ejemplo: los extractos de dos bancos y la cartera abierta.' };
-  if (e === 1) p = { view: 'teso', sel: '#btnCruzar', x: 'Cruce los ' + M.nMov + ' movimientos del banco contra las facturas abiertas.' };
-  if (e === 2) {
-    const d = decididos(), rest = pendientes().length;
-    p = d >= 2 && rest > 1
-      ? { view: 'teso', sel: '#btnResto', x: 'Ya vio cómo funciona. Acepte las ' + rest + ' sugerencias restantes de una vez.' }
-      : { view: 'teso', sel: '.case:not(.done) [data-act="aceptar"]', x: d === 0 ? 'Solo ' + M.casos.length + ' casos necesitan a una persona. Empiece por el pago de Cliente A.' : 'Revise el siguiente caso y decida.' };
-  }
-  if (e === 3) p = { view: 'teso', sel: '#btnRegistrar', x: 'Todo revisado. Registre los cobros en JD Edwards.' };
-  if (e === 4) p = { view: 'cart', sel: '#holdCard', x: '' };
-  if (e === 5) p = { view: 'cart', sel: '.cli', x: 'El pedido retenido ya salió a despacho. Ahora toque un cliente para ver sus facturas.' };
+  if (e === 0) p = { view: 'bandeja', sel: '#btnAbrir', x: 'Llegaron tres pedidos por tres canales. Abra el que entró por correo con una orden de compra.' };
+  if (e === 1) p = { view: 'lectura', sel: '#btnLeer', x: 'El cliente escribió el pedido a su manera. Pida a la IA que lo lea.' };
+  if (e === 2) p = { view: 'lectura', sel: '.opt[data-sug]', x: 'Tres líneas quedaron claras. En la cuarta el cliente solo escribió «PP»: elija el producto.' };
+  if (e === 3) p = { view: 'lectura', sel: '#btnValidar', x: 'El pedido está completo. Valide stock, precio y cupo contra JD Edwards.' };
+  if (e === 4) p = { view: 'validacion', sel: '.opt[data-sug]', x: 'Hay stock y precio, pero el pedido excede el cupo de crédito. Decida qué hacer.' };
+  if (e === 5) p = { view: 'validacion', sel: '#btnCrear', x: 'Decisión tomada. Cree el pedido en JD Edwards.' };
+  if (e === 6) p = { view: S.view === 'bandeja' ? 'bandeja' : 'pedido', sel: '#btnLote', x: 'Pedido creado y cliente avisado. Ahora procese los otros dos de una vez.' };
   if (S.view !== p.view) {
     const nombre = VISTAS.find((v) => v[0] === p.view)[1];
-    return { n: e + 1, total, sel: '[data-view="' + p.view + '"]', x: e === 4 ? 'Abra «Cartera y cupos»: se actualizó con lo que acaba de conciliar.' : 'Abra «' + nombre + '» para continuar.' };
+    return { n: e + 1, total, sel: '[data-view="' + p.view + '"]', x: 'Vuelva a «' + nombre + '» para continuar.' };
   }
   return { n: e + 1, total, sel: p.sel, x: p.x };
 }
@@ -596,124 +555,143 @@ function paintCoach(noScroll) {
   if (r.top < 150 || r.bottom > innerHeight - 20) t.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
 }
 
-/* ---------- Tesorería ---------- */
-function vence(d) { return d > 0 ? ['vencida hace ' + d + (d === 1 ? ' día' : ' días'), true] : d === 0 ? ['vence hoy', false] : ['vence en ' + (-d) + (d === -1 ? ' día' : ' días'), false]; }
-function casoHTML(k) {
-  const d = S.dec[k.id], t = DATA.tipos[k.tipo], nom = DATA.clientes[k.c].n, ped = DATA.pedido;
-  if (d) {
-    const libera = d === 'ok' && k.c === ped.c && pedido().libre;
-    return '<div class="case done' + (d === 'skip' ? ' skip' : '') + '"><span class="ok">' + icon(d === 'ok' ? 'i-check' : 'i-clock') + '</span>'
-      + '<div><b>' + esc(nom) + ' · ' + money(k.bco) + '</b><span class="d">' + (d === 'ok' ? esc(k.hecho) : 'Queda pendiente de revisar') + '</span></div>'
-      + '<button class="link" type="button" data-act="deshacer" data-v="' + k.id + '">Deshacer</button>'
-      + (libera ? '<div class="freed' + (fresh === k.id ? ' anim' : '') + '">' + icon('i-truck') + '<span>Se liberan ' + money(k.fact) + ' de cupo: el pedido ' + ped.jde + ' de ' + esc(nom) + ', que estaba retenido, sale a despacho (simulado).</span></div>' : '')
-      + '</div>';
+/* ---------- Bandeja ---------- */
+function estado(p) {
+  if (p.id === 'p1') {
+    if (S.created) return S.hold === 'parcial' ? ['Creado · despacho parcial', 'warn'] : ['Creado · retenido por cupo', 'warn'];
+    return S.cur ? ['En proceso', 'info'] : ['Nuevo', 'bad'];
   }
-  const open = S.open[k.id];
-  let causa = esc(k.causa);
-  if (k.tipo === 'retencion') causa += ' Retención del ' + String(DATA.retPct) + ' %: ' + money(k.dif) + '.';
-  if (k.tipo === 'comision') causa += ' Comisión: ' + money(k.dif) + '.';
-  return '<div class="case"><div class="case-h"><b>' + (k.tipo === 'sinref' ? 'Sin cliente identificado' : esc(nom)) + '</b><span class="pill ' + t[1] + '">' + t[0] + '</span><em>' + DATA.bancos[k.banco] + '</em></div>'
-    + '<div class="ref">' + esc(k.ref) + '</div>'
-    + '<div class="figs"><div><span>En el banco</span><b>' + money(k.bco) + '</b></div><div><span>' + (k.fs.length > 1 ? k.fs.length + ' facturas' : 'Factura') + '</span><b>' + money(k.fact) + '</b></div>'
-    + '<div class="' + (k.dif === 0 ? 'zero' : 'dif') + '"><span>' + (k.dif < 0 ? 'Pagado de más' : 'Diferencia') + '</span><b>' + money(Math.abs(k.dif)) + '</b></div></div>'
-    + '<p class="cause"><b>Sugerencia:</b> ' + causa + '</p>'
-    + (open ? '<div class="tw"><table class="t"><thead><tr><th>Factura</th><th>Vencimiento</th><th>Monto</th></tr></thead><tbody>'
-      + k.fs.map((f) => '<tr><td class="mono">' + f.id + '</td><td>' + vence(f.d)[0] + '</td><td>' + money(f.m) + '</td></tr>').join('') + '</tbody></table></div>' : '')
-    + '<div class="row"><button class="btn sm" type="button" data-act="aceptar" data-v="' + k.id + '">' + esc(k.accion) + '</button>'
-    + '<button class="btn ghost sm" type="button" data-act="saltar" data-v="' + k.id + '">Revisar después</button>'
-    + '<button class="link" type="button" data-act="facturas" data-v="' + k.id + '">' + (open ? 'Ocultar' : k.fs.length > 1 ? 'Ver las ' + k.fs.length + ' facturas' : 'Ver la factura') + '</button></div></div>';
+  if (!S.batch) return ['En cola', 'mute'];
+  return lineas(p).every((l) => stock(l, p.bodega).ok) ? ['Creado sin intervención', 'ok'] : ['Creado · con traslado', 'ok'];
 }
-function resumenHTML() {
-  const head = '<div class="ink-card"><div class="kicker">Cobros de hoy</div><h3>Resumen del día</h3>';
-  if (!S.loaded) return head + '<p>Aquí verá cuánto de lo que entró al banco ya está aplicado a facturas y cuánto falta revisar.</p></div>';
-  const big = '<div class="sum-big"><b>' + money(M.tBanco) + '</b><span>depositado en bancos · ' + M.nMov + ' movimientos</span></div>';
-  if (!S.crossed) return head + big + '<p>Aún sin cruzar contra la cartera.</p></div>';
-  const r = cuadre(), w = (v) => 'style="width:' + (v / M.tBanco * 100).toFixed(2) + '%"';
-  const li = (cls, t, v) => '<li><span>' + (cls ? '<i class="' + cls + '"></i>' : '') + t + '</span><b>' + money(v) + '</b></li>';
-  return head + big
-    + '<div class="split" role="img" aria-label="Reparto de lo depositado"><i class="c-ok" ' + w(r.aplicado) + '></i><i class="c-fav" ' + w(r.favor) + '></i><i class="c-rev" ' + w(r.revisar) + '></i></div>'
-    + '<ul class="sum-l">' + li('c-ok', 'Aplicado a facturas', r.aplicado) + li('c-fav', 'Saldo a favor de clientes', r.favor) + li('c-rev', 'Por revisar', r.revisar) + '</ul>'
-    + (r.retencion + r.gasto ? '<ul class="sum-l">' + (r.retencion ? li('', 'Retenciones registradas', r.retencion) : '') + (r.gasto ? li('', 'Comisiones bancarias', r.gasto) : '') + '</ul>' : '')
-    + '<div class="cuadra' + (r.revisar ? '' : ' ok') + '">' + (r.revisar ? 'Falta explicar <b>' + money(r.revisar) + '</b> de lo depositado.' : '<b>El día cuadra.</b> Diferencia sin explicar: ' + money(0) + '.') + '</div></div>';
-}
-function vTeso() {
-  const a = M.porBanco('A'), b = M.porBanco('B');
-  const file = (ic, t, d, n) => '<div class="file' + (S.loaded ? ' on' : '') + '"><span class="fi">' + icon(S.loaded ? 'i-check' : ic) + '</span><div><b>' + t + '</b><span class="d">' + (S.loaded ? n : d) + '</span></div></div>';
-  let h = '<section class="card stack"><div><div class="kicker">Cobros de hoy · ' + M.nMov + ' movimientos</div><h1>Del extracto del banco a la factura cobrada</h1>'
-    + '<p class="lead">El cruce entre el banco y la cartera se hace solo. Tesorería revisa únicamente lo que no coincide.</p></div>'
-    + '<div class="files">' + file('i-bank', 'Extracto ' + DATA.bancos.A, 'Movimientos del día', a.n + ' movimientos · ' + money(a.t))
-    + file('i-bank', 'Extracto ' + DATA.bancos.B, 'Movimientos del día', b.n + ' movimientos · ' + money(b.t))
-    + file('i-file', 'Cartera abierta', 'Facturas por cobrar en JD Edwards', M.facturas.length + ' facturas · ' + money(M.tCartera)) + '</div>';
-  if (!S.loaded) h += '<div class="row"><button class="btn" id="btnCargar" type="button" data-act="cargar">Usar los archivos de ejemplo' + icon('i-arrow') + '</button><span class="fine">El prototipo no acepta archivos reales</span></div>';
-  else if (!S.crossed) h += '<div class="row"><button class="btn" id="btnCruzar" type="button" data-act="cruzar">Cruzar banco contra cartera' + icon('i-arrow') + '</button><span class="fine">Cruce simulado</span></div>';
+function vBandeja() {
+  const msg = (p) => {
+    const ch = DATA.canales[p.canal], c = DATA.clientes[p.cliente], st = estado(p);
+    let a = '<span class="pill ' + st[1] + '">' + st[0] + '</span>';
+    if (p.id === 'p1') a += S.created ? '<button class="link" type="button" data-act="view" data-v="pedido">Ver el pedido</button>' : '<button class="btn sm" id="btnAbrir" type="button" data-act="abrir">' + (S.cur ? 'Continuar' : 'Abrir') + icon('i-arrow') + '</button>';
+    else if (S.batch) a += '<button class="link" type="button" data-act="resultado" data-v="' + p.id + '">Ver el resultado</button>';
+    return '<div class="msg"><span class="ch ' + ch[2] + '">' + icon(ch[1]) + '</span><div><div class="msg-h"><b>' + esc(c.n) + ' · ' + esc(p.asunto) + '</b><em>' + esc(ch[0]) + ' · ' + esc(p.hace) + '</em></div><p>' + esc(p.texto.join('')) + '</p></div><div class="msg-a">' + a + '</div></div>';
+  };
+  let h = '<section class="card stack"><div><div class="kicker">Bandeja de pedidos · hoy</div><h1>Tres pedidos, tres canales, ninguno digitado</h1>'
+    + '<p class="lead">La IA lee cada pedido como lo escribió el cliente, valida stock, precio y cupo, y lo deja listo. Una persona decide solo lo que no está claro.</p></div>'
+    + '<div class="inbox">' + DATA.pedidos.map(msg).join('') + '</div>';
+  if (S.created && !S.batch) h += '<div class="row"><button class="btn" id="btnLote" type="button" data-act="lote">Procesar los otros 2 pedidos con IA' + icon('i-spark') + '</button><span class="fine">Proceso simulado</span></div>';
   h += '</section>';
-
-  if (S.crossed) {
-    const nOk = M.exactos.length, tSug = sum(M.casos, (k) => k.bco), w = (n) => 'style="width:' + (n / M.nMov * 100).toFixed(2) + '%"';
-    h += '<section class="card stack anchor" id="resultado"><div class="row between"><h2>Resultado del cruce</h2><span class="fine num">' + M.nMov + ' movimientos</span></div>'
-      + '<div class="split' + (fresh === 'cross' ? ' anim' : '') + '" role="img" aria-label="' + pct(nOk, M.nMov) + ' % aplicado solo, ' + pct(M.nSug, M.nMov) + ' % con sugerencia"><i class="c-ok" ' + w(nOk) + '></i><i class="c-sug" ' + w(M.nSug) + '></i></div>'
-      + '<div class="trio"><div><b>' + pct(nOk, M.nMov) + ' %</b><span><i class="c-ok"></i>Aplicado solo</span><small>' + nOk + ' pagos · ' + money(M.tExact) + '</small></div>'
-      + '<div><b>' + pct(M.nSug, M.nMov) + ' %</b><span><i class="c-sug"></i>Con sugerencia</span><small>' + M.nSug + ' pagos · ' + money(tSug) + '</small></div>'
-      + '<div><b>0 %</b><span><i class="c-rev"></i>Sin pista</span><small>0 pagos</small></div></div>'
-      + '<div class="gain">' + icon('i-check') + '<div><b>Qué gana Tesorería:</b> ' + nOk + ' pagos quedan aplicados a su factura sin que nadie los toque. Los otros ' + M.nSug + ' llegan agrupados en ' + M.casos.length + ' casos, cada uno con una sugerencia.</div></div></section>';
-
-    const rest = pendientes().length;
-    h += '<section class="card stack"><div class="row between"><div><h2>Casos para revisar</h2><p class="fine">El sistema sugiere; la persona decide.</p></div>'
-      + (rest > 1 && decididos() >= 1 ? '<button class="btn ghost sm" id="btnResto" type="button" data-act="resto">Aceptar las ' + rest + ' sugerencias restantes</button>' : '<span class="pill ' + (rest ? 'warn' : 'ok') + '">' + (rest ? rest + ' por decidir' : 'Todo decidido') + '</span>') + '</div>'
-      + '<div class="cases">' + M.casos.map(casoHTML).join('') + '</div></section>';
-
-    if (!rest) {
-      const r = cuadre(), salt = M.casos.filter((k) => S.dec[k.id] === 'skip').length, min = M.nMov * DATA.minutosPorMovimiento;
-      h += '<section class="card stack"><div><div class="kicker">Registro</div><h2>' + (S.reg ? 'Cobros registrados en JD Edwards (simulado)' : 'Listo para registrar en JD Edwards') + '</h2></div>'
-        + '<div class="kpis"><div class="kpi good"><b>' + dolares(r.canceladas) + '</b><span>en ' + r.nFact + ' facturas canceladas</span></div>'
-        + '<div class="kpi"><b>' + dolares(r.favor) + '</b><span>saldo a favor de clientes</span></div>'
-        + '<div class="kpi' + (r.revisar ? ' warn' : '') + '"><b>' + dolares(r.revisar) + '</b><span>por revisar' + (salt ? ' · ' + salt + (salt === 1 ? ' caso' : ' casos') : '') + '</span></div></div>'
-        + (S.reg
-          ? '<div class="gain">' + icon('i-check') + '<div><b>Qué gana NUTEC:</b> la cartera y los cupos quedan al día el mismo día del pago, no al cierre del mes. Cada diferencia sale explicada y con su asiento.</div></div>'
-          + '<div class="note">' + icon('i-info') + '<span>Cruzar ' + M.nMov + ' movimientos a mano, a ' + DATA.minutosPorMovimiento + ' minutos cada uno, tomaría cerca de ' + (min >= 90 ? Math.round(min / 60) + ' horas' : min + ' minutos') + '. Es un supuesto ilustrativo: el tiempo real se mide con su equipo.</span></div>'
-          + '<div class="row"><button class="btn' + (S.cartVista ? ' ghost' : '') + '" type="button" data-act="view" data-v="cart">Ver cartera y cupos' + icon('i-arrow') + '</button></div>'
-          : '<div class="row"><button class="btn" id="btnRegistrar" type="button" data-act="registrar">Registrar los cobros en JD Edwards' + icon('i-arrow') + '</button><span class="fine">Registro simulado</span></div>')
-        + '</section>';
-    }
+  if (S.batch) {
+    const min = nLineas * DATA.minutosPorLinea;
+    h += '<section class="card stack anchor" id="resumen"><div><div class="kicker">Resultado</div><h2>La bandeja quedó en cero</h2></div>'
+      + '<div class="kpis"><div class="kpi good"><b>' + DATA.pedidos.length + '</b><span>pedidos creados en JD Edwards (simulado)</span></div>'
+      + '<div class="kpi"><b>' + nLineas + '</b><span>líneas leídas, sin digitar ninguna</span></div>'
+      + '<div class="kpi"><b>2</b><span>decisiones tomadas por una persona</span></div></div>'
+      + '<div class="gain">' + icon('i-check') + '<div><b>Qué gana NUTEC:</b> el equipo comercial deja de digitar pedidos y dedica ese tiempo a los clientes. Cada pedido llega a JD Edwards con el código correcto, el stock revisado y el cupo verificado.</div></div>'
+      + '<div class="note">' + icon('i-info') + '<span>Digitar ' + nLineas + ' líneas a mano, a ' + DATA.minutosPorLinea + ' minutos por línea entre buscar el código, revisar el stock y el cupo, tomaría cerca de ' + min + ' minutos. Es un supuesto ilustrativo: el tiempo real se mide con su equipo.</span></div>'
+      + '<div class="note">' + icon('i-info') + '<span>El pedido de Cliente A quedó ' + (S.hold === 'parcial' ? 'con una parte retenida' : 'retenido') + ' por cupo. En el prototipo <b>Conciliación y cartera</b> verá cómo se libera solo cuando se confirma su pago.</span></div></section>';
   }
-  return '<div class="cols"><div class="main">' + h + '</div><aside class="side" aria-label="Resumen del día">' + resumenHTML() + '</aside></div>';
+  return h;
 }
 
-/* ---------- Cartera y cupos ---------- */
-function vCart() {
-  const cs = Object.keys(DATA.clientes).map(cliente).sort((a, b) => b.usado - a.usado), ab = abiertas();
-  const tot = sum(ab, (f) => f.m), venc = sum(ab.filter((f) => f.d > 0), (f) => f.m), r = cuadre(), p = pedido(), nomP = DATA.clientes[p.c].n;
-  let h = '<section class="card stack"><div><div class="kicker">Hoy · ' + cs.length + ' clientes con crédito</div><h1>Cartera y cupos, al día con el banco</h1></div>'
-    + '<div class="kpis"><div class="kpi"><b>' + dolares(tot) + '</b><span>cartera por cobrar</span></div>'
-    + '<div class="kpi' + (venc ? ' warn' : '') + '"><b>' + dolares(venc) + '</b><span>vencida</span></div>'
-    + '<div class="kpi good"><b>' + dolares(r.canceladas) + '</b><span>cobrado y aplicado hoy</span></div>'
-    + '<div class="kpi' + (p.libre ? ' good' : ' warn') + '"><b>' + (p.libre ? 0 : 1) + '</b><span>pedidos retenidos por cupo</span></div></div></section>';
+/* ---------- Lectura ---------- */
+function docHTML() {
+  const p = P1;
+  return '<div class="paper' + (S.read ? ' read' : '') + (fresh === 'read' ? ' anim' : '') + '"><span class="paper-tag">Documento de ejemplo</span>'
+    + '<div class="paper-from"><span>De <b>' + esc(p.de) + '</b></span><span>Asunto <b>' + esc(p.asunto) + '</b></span></div>'
+    + '<p class="paper-body">' + esc(p.texto[0]) + '<mark>' + esc(p.texto[1]) + '</mark>' + esc(p.texto[2]) + '</p>'
+    + '<span class="attach">' + icon('i-file') + esc(p.adjunto) + '</span>'
+    + '<div class="oc"><div class="oc-h">ORDEN DE COMPRA N.º 4471<span>Entrega: planta Guayaquil · Crédito ' + DATA.clientes[p.cliente].plazo + ' días</span></div>'
+    + p.lineas.map((l, i) => '<div class="oc-r" style="--i:' + i + '"><span>' + esc(l.txt) + '</span><b>' + esc(l.cant) + '</b></div>').join('') + '</div></div>';
+}
+function lineaHTML(l, i) {
+  const st = 'style="--i:' + i + '"';
+  if (l.opciones && !S.pick) {
+    return '<div class="xl doubt" ' + st + '><div class="xl-q"><span>«' + esc(l.txt) + ' · ' + esc(l.cant) + '»</span><em>' + kg(l.kg) + '</em></div>'
+      + '<div class="xl-m"><b>No está claro qué polipropileno es</b><span class="pill warn">' + l.conf + ' %</span></div>'
+      + '<div class="opts">' + l.opciones.map((o) => {
+        const sug = o === l.sugerido;
+        return '<button class="opt" type="button" data-act="pick" data-v="' + o + '"' + (sug ? ' data-sug' : '') + '><b>' + esc(DATA.catalogo[o].n) + (sug ? '<small>Sugerido</small>' : '') + '</b><span>' + (sug ? esc(l.motivo) : 'Código ' + o + ' · ' + money(DATA.catalogo[o].precio) + ' por kg') + '</span></button>';
+      }).join('') + '</div></div>';
+  }
+  const cod = l.cod || S.pick, prod = DATA.catalogo[cod];
+  return '<div class="xl" ' + st + '><div class="xl-q"><span>«' + esc(l.txt) + ' · ' + esc(l.cant) + '»</span><em>' + kg(l.kg) + '</em></div>'
+    + '<div class="xl-m"><b>' + esc(prod.n) + '</b><code>' + cod + '</code>' + (l.opciones ? '<span class="pill info">Lo eligió una persona</span>' : '<span class="pill ok">' + l.conf + ' %</span>') + '</div>'
+    + (l.nota ? '<div class="fine">' + esc(l.nota) + '</div>' : '')
+    + (l.opciones ? '<div><button class="link" type="button" data-act="unpick" style="padding:2px 0">Cambiar</button></div>' : '') + '</div>';
+}
+function vLectura() {
+  const p = P1, c = DATA.clientes[p.cliente];
+  let r;
+  if (!S.read) {
+    r = '<div class="empty"><span>Aquí aparece lo que la IA entiende del documento: cliente, entrega, productos y cantidades.</span><button class="btn" id="btnLeer" type="button" data-act="leer">Leer el pedido con IA' + icon('i-spark') + '</button><span class="fine">Lectura simulada</span></div>';
+  } else {
+    r = '<div class="kv"><div><span>Cliente</span><b>' + esc(c.n) + ' · ' + c.cod + ' en JD Edwards</b></div><div><span>Entrega</span><b>' + DATA.bodegas[p.bodega] + '</b></div><div><span>Condición</span><b>Crédito ' + c.plazo + ' días</b></div></div>'
+      + '<div class="xls' + (fresh === 'read' ? ' anim' : '') + '">' + p.lineas.map(lineaHTML).join('') + '</div>'
+      + '<div class="note">' + icon('i-info') + '<span><b>La IA también notó algo:</b> ' + esc(p.aviso) + '</span></div>'
+      + (S.pick ? '<div class="row"><button class="btn' + (S.valid ? ' ghost' : '') + '" id="btnValidar" type="button" data-act="validar">Validar stock, precio y cupo' + icon('i-arrow') + '</button><span class="fine">Contra JD Edwards (simulado)</span></div>' : '');
+  }
+  return '<section class="card stack"><div><div class="kicker">' + esc(c.n) + ' · ' + esc(c.giro) + '</div><h1>Del correo a las líneas del pedido</h1>'
+    + '<p class="lead">A la izquierda, lo que mandó el cliente. A la derecha, lo que la IA entiende. La IA propone; lo dudoso lo decide una persona.</p></div>'
+    + '<div class="two">' + docHTML() + '<div class="stack"><div class="row between"><h2>Lo que entiende la IA</h2>' + (S.read ? '<span class="fine">% = confianza de la lectura</span>' : '') + '</div>' + r + '</div></div></section>';
+}
 
-  h += '<section class="hold' + (p.libre ? ' free' : '') + '" id="holdCard"><div class="hold-h">' + icon('i-truck') + '<b>Pedido ' + p.jde + ' · ' + esc(nomP) + '</b><span class="pill ' + (p.libre ? 'ok">Liberado a despacho' : 'bad">Retenido por cupo') + '</span><em>' + money(p.total) + '</em></div>'
-    + (p.libre
-      ? '<p>El pago de ' + esc(nomP) + ' se aplicó a sus facturas y liberó cupo: ahora tiene ' + money(p.disp) + ' disponibles. Bodega recibe el aviso de despacho (simulado).</p>'
-      + '<div class="gain" style="background:#fff">' + icon('i-check') + '<div><b>Qué gana NUTEC:</b> nadie tuvo que llamar a Crédito ni a Bodega. El pedido salió cuando el pago se confirmó.</div></div>'
-      : '<p>' + esc(nomP) + ' tiene ' + money(p.disp) + ' de cupo disponible; al pedido le faltan ' + money(p.falta) + '. ' + (S.crossed ? 'Su pago de hoy está entre los casos por revisar en Tesorería.' : 'El cliente avisó un pago; todavía no se concilia.') + '</p>'
-      + '<div class="row"><button class="btn ghost sm" type="button" data-act="view" data-v="teso">Ir a Tesorería' + icon('i-arrow') + '</button></div>')
+/* ---------- Validación ---------- */
+function vValidacion() {
+  const p = P1, ls = lineas(p), t = totales(ls), cr = credito(p), c = cr.c, par = parcial(p);
+  const nAhora = par.filter((l) => l.ahora).length, vAhora = par.filter((l) => l.ahora).reduce((s, l) => s + l.valor, 0);
+  const w = (v) => 'style="width:' + (v / Math.max(c.cupo, c.usado + cr.total) * 100).toFixed(2) + '%"';
+  const cab = (i, t1, pill) => '<div class="check" style="--i:' + i + '"><div class="check-h"><b>' + t1 + '</b>' + pill + '</div>';
+  let h = cab(0, 'Stock en ' + DATA.bodegas[p.bodega], '<span class="pill ok">Hay stock para las ' + ls.length + ' líneas</span>')
+    + '<div class="tw"><table class="t"><thead><tr><th>Producto</th><th>Pedido</th><th>Disponible</th></tr></thead><tbody>'
+    + ls.map((l) => '<tr><td>' + esc(l.prod.n) + '<small class="mono">' + l.cod + '</small></td><td>' + kg(l.kg) + '</td><td>' + kg(stock(l, p.bodega).disp) + '</td></tr>').join('') + '</tbody></table></div></div>';
+  h += cab(1, 'Precio', '<span class="pill ok">Lista vigente del cliente</span>')
+    + '<div class="kv"><div><span>Subtotal</span><b>' + money(t.sub) + '</b></div><div><span>IVA ' + DATA.ivaPct + ' %</span><b>' + money(t.iva) + '</b></div><div><span>Total del pedido</span><b>' + money(t.total) + '</b></div></div></div>';
+  h += cab(2, 'Cupo de crédito', cr.exceso ? '<span class="pill bad">Excede el cupo por ' + money(cr.exceso) + '</span>' : '<span class="pill ok">Dentro del cupo</span>')
+    + '<div class="cupo" role="img" aria-label="Uso del cupo de crédito"><i class="u" ' + w(c.usado) + '></i><i class="p" ' + w(Math.min(cr.total, cr.disp)) + '></i><i class="x" ' + w(cr.exceso) + '></i></div>'
+    + '<div class="legend"><span><i style="background:#7B818C"></i>Usado <b>' + money(c.usado) + '</b></span><span><i style="background:var(--ok-bright)"></i>Disponible <b>' + money(cr.disp) + '</b></span><span><i style="background:var(--acc)"></i>Exceso <b>' + money(cr.exceso) + '</b></span><span>Cupo <b>' + money(c.cupo) + '</b></span></div>'
+    + '<div class="opts">'
+    + '<button class="opt' + (S.hold === 'retener' ? ' on' : '') + '" type="button" data-act="hold" data-v="retener" data-sug><b>Retener el pedido y avisar a Crédito<small>Sugerido</small></b><span>El cliente avisó un pago ayer. Si Cobranzas lo confirma, el pedido se libera solo.</span></button>'
+    + '<button class="opt' + (S.hold === 'parcial' ? ' on' : '') + '" type="button" data-act="hold" data-v="parcial"><b>Despachar ahora lo que el cupo permite</b><span>' + nAhora + ' de ' + ls.length + ' líneas por ' + money(vAhora) + '. El resto queda retenido.</span></button>'
+    + '</div></div>';
+  return '<section class="card stack"><div><div class="kicker">' + esc(c.n) + ' · ' + esc(P1.asunto) + '</div><h1>Tres revisiones que hoy alguien hace a mano</h1>'
+    + '<p class="lead">Stock, precio y cupo se consultan en JD Edwards antes de crear el pedido. En este prototipo la consulta está simulada.</p></div>'
+    + '<div class="checks' + (fresh === 'valid' ? ' anim' : '') + '">' + h + '</div>'
+    + (S.hold ? '<div class="row"><button class="btn' + (S.created ? ' ghost' : '') + '" id="btnCrear" type="button" data-act="crear">' + (S.created ? 'Ver el pedido' : 'Crear el pedido en JD Edwards') + icon('i-arrow') + '</button><span class="fine">Simulado</span></div>' : '')
     + '</section>';
+}
 
-  h += '<div class="two"><section class="card"><h2>Cupo de crédito por cliente</h2><p class="fine">Toque un cliente para ver sus facturas abiertas.</p><div class="clis">'
-    + cs.map((k) => {
-      const on = S.cli === k.c, uso = k.usado / k.cupo * 100;
-      let s = '<button class="cli' + (on ? ' on' : '') + '" type="button" data-act="cli" data-v="' + k.c + '" aria-expanded="' + on + '"><span class="cn">' + esc(k.n) + '</span>'
-        + '<span class="cb"><span class="bar"><i class="' + (k.peor > 60 ? 'max' : uso >= 70 ? 'hi' : '') + '" style="width:' + Math.min(100, uso).toFixed(2) + '%"></i></span><small>' + Math.round(uso) + ' % de ' + dolares(k.cupo) + (k.peor > 60 ? ' · mora de ' + k.peor + ' días' : '') + '</small></span>'
-        + '<span class="cv">' + dolares(k.usado) + '</span>' + icon('i-chev') + '</button>';
-      if (on) {
-        s += '<div class="facts">' + (k.fs.length ? k.fs.map((f) => { const v = vence(f.d); return '<div><span class="mono">' + f.id + '</span><span class="v' + (v[1] ? ' late' : '') + '">' + v[0] + '</span><b>' + money(f.m) + '</b></div>'; }).join('') : '<div><span></span><span class="v">Sin facturas abiertas</span><b></b></div>') + '</div>';
-      }
-      return s;
-    }).join('') + '</div></section>';
+/* ---------- Pedido ---------- */
+function vPedido() {
+  const p = P1, c = DATA.clientes[p.cliente], par = parcial(p), t = totales(par), parc = S.hold === 'parcial';
+  const st = estado(p);
+  const cierre = parc
+    ? 'Despachamos hoy ' + par.filter((l) => l.ahora).map((l) => l.prod.n.split(' · ')[0].toLowerCase()).join(' y ') + '. El resto sale en cuanto se registre su pago.'
+    : 'Lo despachamos en cuanto se registre el pago que nos indica en su correo.';
+  let h = '<section class="card stack"><div><div class="kicker">Pedido creado en JD Edwards (simulado)</div><h1>' + p.jde + ' · ' + esc(c.n) + '</h1></div>'
+    + '<div class="row"><span class="pill ' + st[1] + '">' + st[0] + '</span><span class="pill info">Crédito avisado</span><span class="fine">Entrega en ' + DATA.bodegas[p.bodega] + ' · crédito ' + c.plazo + ' días</span></div>'
+    + '<div class="tw"><table class="t" style="min-width:' + (parc ? 560 : 480) + 'px"><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio por kg</th><th>Importe</th>' + (parc ? '<th>Despacho</th>' : '') + '</tr></thead><tbody>'
+    + par.map((l) => '<tr><td>' + esc(l.prod.n) + '<small class="mono">' + l.cod + '</small></td><td>' + kg(l.kg) + '</td><td>' + money(l.prod.precio) + '</td><td>' + money(l.importe) + '</td>' + (parc ? '<td><span class="pill ' + (l.ahora ? 'ok">Ahora' : 'warn">Retenida') + '</span></td>' : '') + '</tr>').join('')
+    + '</tbody><tfoot><tr><td colspan="3">Subtotal</td><td>' + money(t.sub) + '</td>' + (parc ? '<td></td>' : '') + '</tr><tr><td colspan="3">IVA ' + DATA.ivaPct + ' %</td><td>' + money(t.iva) + '</td>' + (parc ? '<td></td>' : '') + '</tr><tr><td colspan="3">Total</td><td>' + money(t.total) + '</td>' + (parc ? '<td></td>' : '') + '</tr></tfoot></table></div>'
+    + '<div><h2>Respuesta al cliente</h2><p class="fine">Enviada por el mismo canal en que llegó el pedido (simulado).</p></div>'
+    + '<div class="mail"><div class="mail-h"><span>Para <b>' + esc(p.de) + '</b></span><span>Asunto <b>Recibimos su ' + esc(p.asunto.toLowerCase()) + '</b></span></div>'
+    + 'Buen día. Registramos su pedido con ' + par.length + ' productos por ' + money(t.total) + ', para entrega en su planta de ' + DATA.bodegas[p.bodega] + '. ' + cierre + ' Su número de pedido es ' + p.jde + '.</div>'
+    + '<div class="gain">' + icon('i-check') + '<div><b>Qué gana NUTEC:</b> el pedido pasó del correo a JD Edwards sin digitarlo. Una persona decidió dos cosas: qué polipropileno era y qué hacer con el cupo.</div></div>'
+    + (S.batch ? '<div class="row"><button class="btn ghost" type="button" data-act="view" data-v="bandeja">Volver a la bandeja' + icon('i-arrow') + '</button></div>'
+      : '<div class="row"><button class="btn" id="btnLote" type="button" data-act="lote">Procesar los otros 2 pedidos con IA' + icon('i-spark') + '</button><span class="fine">Proceso simulado</span></div>')
+    + '</section>';
+  return h;
+}
 
-  const tr = DATA.tramos.map((t) => ({ n: t[0], col: t[3], v: sum(ab.filter((f) => f.d >= t[1] && f.d <= t[2]), (f) => f.m) })), mx = Math.max.apply(null, tr.map((t) => t.v).concat([1]));
-  h += '<section class="card"><h2>Cartera por vencimiento</h2><p class="fine">Facturas abiertas después de aplicar los cobros.</p><div class="aging">'
-    + tr.map((t) => '<div class="ag"><span>' + t.n + '</span><span class="bar"><i style="width:' + (t.v / mx * 100).toFixed(2) + '%;background:' + t.col + '"></i></span><b>' + money(t.v) + '</b></div>').join('')
-    + '</div><div class="note" style="margin-top:14px">' + icon('i-info') + '<span>Desde aquí se pueden programar los recordatorios de cobro por tramo. En este prototipo no se envía nada.</span></div></section></div>';
-  return '<div class="main">' + h + '</div>';
+/* ---------- Panel lateral ---------- */
+function sideHTML() {
+  const n = P1.lineas.length, claras = P1.lineas.filter((l) => l.cod).length;
+  const holdTxt = S.hold === 'parcial' ? 'Despacho parcial; el resto, retenido' : S.hold === 'retener' ? 'Retenido; Crédito avisado' : 'Lo decide una persona';
+  const li = (on, b, s) => '<li class="' + (on ? 'on' : '') + '"><span class="dot">' + icon('i-check') + '</span><div><b>' + b + '</b><span>' + s + '</span></div></li>';
+  return '<div class="ink-card"><div class="kicker">Cliente A · ' + esc(P1.asunto) + '</div><h3>Lo que pasa con el pedido</h3>'
+    + '<ul class="tl">' + li(S.cur, 'Pedido recibido', 'Correo con PDF adjunto')
+    + li(S.read, 'Leído con IA', n + ' líneas, ' + claras + ' sin dudas')
+    + li(!!S.pick, 'Línea dudosa resuelta', 'La eligió una persona')
+    + li(S.valid, 'Stock y precio validados', 'Contra JD Edwards (simulado)')
+    + li(!!S.hold, 'Cupo de crédito', holdTxt)
+    + li(S.created, 'Pedido creado', P1.jde + ' · cliente avisado')
+    + li(S.batch, 'Los otros 2 pedidos', 'Creados sin digitar') + '</ul></div>';
 }
 
 /* ---------- Render ---------- */
@@ -722,8 +700,13 @@ function render(scrollTop, anchor) {
   document.body.dataset.mode = S.mode;
   $('#modeBtn').innerHTML = icon('i-compass') + '<span>' + (S.mode === 'guiado' ? 'Modo libre' : 'Volver a la guía') + '</span>';
   $('#modeBtn').title = S.mode === 'guiado' ? 'Ocultar la guía y explorar por su cuenta' : 'Mostrar la guía paso a paso';
-  $('#tabs').innerHTML = VISTAS.map((v) => '<button class="tab' + (S.view === v[0] ? ' on' : '') + '" type="button" data-act="view" data-v="' + v[0] + '" data-view="' + v[0] + '">' + icon(v[2]) + v[1] + '</button>').join('');
-  $('#view').innerHTML = S.view === 'teso' ? vTeso() : vCart();
+  const iv = VISTAS.findIndex((v) => v[0] === S.view);
+  $('#steps').innerHTML = VISTAS.map((v, i) => {
+    const hecho = v[0] === 'bandeja' ? S.cur : v[0] === 'lectura' ? S.valid : v[0] === 'validacion' ? S.created : S.batch;
+    return '<button class="step' + (i === iv ? ' cur' : hecho ? ' done' : '') + '" type="button" data-act="view" data-v="' + v[0] + '" data-view="' + v[0] + '"' + (alcanza(v[0]) ? '' : ' disabled') + '><i>' + (hecho && i !== iv ? icon('i-check') : i + 1) + '</i>' + v[1] + '</button>';
+  }).join('');
+  const v = S.view === 'lectura' ? vLectura() : S.view === 'validacion' ? vValidacion() : S.view === 'pedido' ? vPedido() : vBandeja();
+  $('#view').innerHTML = '<div class="cols"><div class="main">' + v + '</div><aside class="side" aria-label="Lo que pasa con el pedido">' + sideHTML() + '</aside></div>';
   if (scrollTop) scrollTo(0, 0);
   const a = anchor && document.querySelector(anchor);
   paintCoach(!!a);
@@ -735,31 +718,37 @@ function render(scrollTop, anchor) {
 function openModal(html) { $('#modal').innerHTML = html; $('#overlay').classList.add('on'); const b = $('#modal button'); if (b) b.focus(); }
 function closeModal() { $('#overlay').classList.remove('on'); }
 function showIntro() {
-  const p = DATA.pedido;
-  openModal('<h3>Usted está en Tesorería y le toca aplicar los cobros del día</h3>'
-    + '<p>Entraron ' + M.nMov + ' pagos en dos bancos. Además, hay un pedido de ' + esc(DATA.clientes[p.c].n) + ' retenido por cupo. En dos minutos verá cómo:</p>'
-    + '<ol><li>El cruce con las facturas se hace solo</li><li>Usted revisa solo lo que no coincide</li><li>El cupo se libera y el pedido sale a despacho</li></ol>'
-    + '<p class="fine">Es un prototipo con datos ilustrativos. No hay clientes, bancos ni montos reales, y nada se envía a JD Edwards.</p>'
+  openModal('<h3>Usted atiende pedidos en el área comercial</h3>'
+    + '<p>Llegaron tres pedidos: uno por correo, uno por WhatsApp y uno en Excel. En dos minutos verá cómo:</p>'
+    + '<ol><li>La IA lee el pedido como lo escribió el cliente</li><li>Se validan stock, precio y cupo</li><li>El pedido queda en JD Edwards y el cliente recibe respuesta</li></ol>'
+    + '<p class="fine">Es un prototipo con datos ilustrativos. No hay clientes, precios ni pedidos reales, y nada se envía a JD Edwards.</p>'
     + '<div class="row"><button class="btn" type="button" data-act="cerrar">Empezar' + icon('i-arrow') + '</button></div>');
+}
+function showResultado(id) {
+  const p = DATA.pedidos.find((x) => x.id === id), c = DATA.clientes[p.cliente], ls = lineas(p), t = totales(ls), cr = credito(p);
+  const faltas = ls.map((l) => Object.assign(stock(l, p.bodega), { l })).filter((s) => !s.ok);
+  openModal('<h3>' + p.jde + ' · ' + esc(c.n) + '</h3><p class="fine">' + esc(DATA.canales[p.canal][0]) + ' · «' + esc(p.texto.join('')) + '»</p>'
+    + '<div class="tw" style="margin-top:14px"><table class="t"><thead><tr><th>Producto</th><th>Cantidad</th><th>Importe</th></tr></thead><tbody>'
+    + ls.map((l) => '<tr><td>' + esc(l.prod.n) + '<small class="mono">' + l.cod + '</small></td><td>' + kg(l.kg) + '</td><td>' + money(l.importe) + '</td></tr>').join('')
+    + '</tbody><tfoot><tr><td colspan="2">Total con IVA</td><td>' + money(t.total) + '</td></tr></tfoot></table></div>'
+    + '<ul class="res"><li>' + icon('i-check') + '<span>' + ls.length + ' líneas leídas sin dudas</span></li>'
+    + (faltas.length ? faltas.map((s) => '<li class="w">' + icon('i-alert') + '<span>En ' + DATA.bodegas[p.bodega] + ' faltan ' + kg(s.falta) + ' de ' + esc(s.l.prod.n) + '. ' + (s.cubre ? 'Se sugiere el traslado desde ' + DATA.bodegas[s.otra] + '.' : 'No hay stock en otra bodega.') + '</span></li>').join('') : '<li>' + icon('i-check') + '<span>Stock completo en ' + DATA.bodegas[p.bodega] + '</span></li>')
+    + '<li>' + icon('i-check') + '<span>Dentro del cupo: disponible ' + money(cr.disp) + '</span></li></ul>'
+    + '<div class="row"><button class="btn" type="button" data-act="cerrar">Entendido</button></div>');
 }
 
 /* ---------- Acciones ---------- */
 const ACT = {
-  view(v) {
-    S.view = v;
-    // El paso «cartera y cupos» se cumple al abrirla después de registrar.
-    if (v === 'cart' && S.reg) S.cartVista = true;
-    render(true);
-  },
-  cargar() { S.loaded = true; render(); },
-  cruzar() { S.crossed = true; fresh = 'cross'; render(false, '#resultado'); fresh = null; },
-  aceptar(v) { S.dec[v] = 'ok'; fresh = v; render(); fresh = null; },
-  saltar(v) { S.dec[v] = 'skip'; render(); },
-  deshacer(v) { delete S.dec[v]; S.reg = false; render(); },
-  facturas(v) { S.open[v] = !S.open[v]; render(); },
-  resto() { pendientes().forEach((k) => { S.dec[k.id] = 'ok'; }); render(); },
-  registrar() { S.reg = true; render(); },
-  cli(v) { S.cli = S.cli === v ? null : v; if (S.cartVista) S.cliVisto = true; render(); },
+  view(v) { if (alcanza(v)) { S.view = v; render(true); } },
+  abrir() { S.cur = true; S.view = 'lectura'; render(true); },
+  leer() { S.read = true; fresh = 'read'; render(); fresh = null; },
+  pick(v) { S.pick = v; render(); },
+  unpick() { S.pick = null; S.valid = false; S.hold = null; S.created = false; render(); },
+  validar() { const ya = S.valid; S.valid = true; S.view = 'validacion'; fresh = ya ? null : 'valid'; render(true); fresh = null; },
+  hold(v) { S.hold = v; render(); },
+  crear() { S.created = true; S.view = 'pedido'; render(true); },
+  lote() { S.batch = true; S.view = 'bandeja'; render(false, '#resumen'); },
+  resultado(v) { showResultado(v); },
   libre() { S.mode = 'libre'; render(); },
   cerrar() { closeModal(); if (!S.seenIntro) { S.seenIntro = true; save(); } },
   reiniciar() { try { localStorage.removeItem(KEY); } catch (e) {} S = initState(); S.seenIntro = true; closeModal(); render(true); }
